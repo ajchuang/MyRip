@@ -60,9 +60,9 @@ public class bfclient {
             if (userInput.equals ("quit")) {
                 System.out.println ("Bye-bye");
                 return;
-            } else {
-                System.out.println ("echo > " + userInput);
             }
+            
+            System.out.println ("echo > " + userInput);
         }
     }
 }

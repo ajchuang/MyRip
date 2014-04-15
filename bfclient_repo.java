@@ -8,6 +8,7 @@ public class bfclient_repo {
     int m_port;
     int m_timeout;
     String m_configFileName;
+    Object m_lock;
     
     static {
         m_repo = null;
@@ -38,6 +39,7 @@ public class bfclient_repo {
     
     private bfclient_repo (String fname) {
         m_configFileName = fname;
+        m_lock = new Object ();
     }
     
     public void parseConfigFile () {
