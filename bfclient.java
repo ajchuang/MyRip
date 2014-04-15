@@ -9,8 +9,6 @@ import java.io.*;
 // extra feature: ping, traceroute
 public class bfclient {
     
-    String m_configFileName;
-    
     public static void logErr (String s) {
         System.out.println ("[Err] " + s);
     }
@@ -34,59 +32,27 @@ public class bfclient {
             return;
         }
         
-        bfclient bfc = new bfclient (args[0]);
-        bfc.parseConfigFile ();
+        String config = args[0];
+        
+        bfclient_repo repo = bfclient_repo.createRepo (config);
+        bfclient bfc = new bfclient ();
+        repo.parseConfigFile ();
+        
+        // start server
+        new Thread (bfclient_listener.getListener ()).start (); 
+        
+        // start UI
         bfc.startConsole ();
-        
+        System.exit (0);
     }
     
-    public bfclient (String fName) {
-        m_configFileName = fName;
-    }
-    
-    public void parseConfigFile () {
-    
-        BufferedReader br = null;
-        String line = null;
-        
-        try {    
-            br = new BufferedReader (new FileReader (m_configFileName));
-            
-            // Ln1 is different from others
-            line = br.readLine ();
-            if (line != null) {
-                String[] lns = line.split (" ");
-                
-                if (lns.length == 2) {
-                    bfclient.logInfo ("Port: " + lns[0] + " timeout: " + lns[1]);
-                } else if (lns.length == 4) {
-                    bfclient.logInfo ("Port: " + lns[0] + " timeout: "  + lns[1]);
-                    bfclient.logInfo ("File: " + lns[2] + " sequence: " + lns[3]);
-                } else {
-                    bfclient.logErr ("Incorrect config file line 1");
-                    System.exit (0);
-                }
-                
-            } else {
-                bfclient.logErr ("Empty file.");
-                System.exit (0);
-            }
-            
-            while ((line = br.readLine ()) != null) {
-                String[] ln = line.split (":| ");
-                bfclient.logInfo ("ip: " + ln[0] + " port: " + ln[1] + " weight: " + ln[2]);
-            }
-            
-            br.close ();
-            
-        } catch (Exception e) {
-            logExp (e, true);    
-        } 
+    public bfclient () {
     }
     
     public void startConsole () {
         
         Scanner scn = new Scanner (System.in);
+        System.out.println ("Welcome to bfclient console!");
         while (true) {
             System.out.print ("$ ");
             String userInput = scn.nextLine ();

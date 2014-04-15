@@ -1,2 +1,2 @@
 #!/bin/bash
-java bfclient config_01
+java bfclient ./config/config_01
