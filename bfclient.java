@@ -9,6 +9,14 @@ import java.io.*;
 // extra feature: ping, traceroute
 public class bfclient {
     
+    final static String M_LINKDOWN  = "LINKDOWN";
+    final static String M_LINKUP    = "LINKUP";
+    final static String M_CLOSE     = "CLOSE";
+    final static String M_QUIT      = "QUIT";
+    final static String M_TRANSFER  = "TRANSFER";
+    final static String M_PING      = "PING";
+    final static String M_TROUTE    = "TRACEROUTE";
+    
     public static void logErr (String s) {
         System.out.println ("[Err] " + s);
     }
@@ -62,16 +70,39 @@ public class bfclient {
         
         Scanner scn = new Scanner (System.in);
         System.out.println ("Welcome to bfclient console!");
+        
         while (true) {
             System.out.print ("$ ");
-            String userInput = scn.nextLine ();
+            String userInput = scn.nextLine ().trim ();
             
-            if (userInput.equals ("quit")) {
-                System.out.println ("Bye-bye");
-                return;
+            if (userInput.equals (M_CLOSE)) {
+                
             }
             
-            System.out.println ("echo > " + userInput);
+            String[] toks = userInput.split (" ");
+            
+            if (toks.length == 0)
+                return;
+            
+            // we just take lower and upper case
+            String cmd = toks[0].toUpperCase ();
+            
+            if (cmd.equals (M_LINKDOWN)) {
+            } else if (cmd.equals (M_LINKUP)) {
+                System.out.println ("echo > " + cmd);
+            } else if (cmd.equals (M_CLOSE) || cmd.equals (M_QUIT)) {
+                // should we flush the routing table?
+                System.out.println ("Bye-bye");
+                return;
+            } else if (cmd.equals (M_TRANSFER)) {
+                System.out.println ("echo > " + cmd);
+            } else if (cmd.equals (M_PING)) {
+                System.out.println ("echo > " + cmd);
+            } else if (cmd.equals (M_TROUTE)) {
+                System.out.println ("echo > " + cmd);
+            } else {
+                System.out.println ("Unknown command: " + userInput);
+            }
         }
     }
 }

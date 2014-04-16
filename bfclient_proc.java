@@ -50,6 +50,7 @@ public class bfclient_proc implements Runnable {
                 }
             }, 1000, repo.getTimeout () * 1000);
         
+        // enter message loop
         while (true) {
             try {
                 bfclient_msg msg = m_queue.take ();
