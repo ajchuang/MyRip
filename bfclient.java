@@ -11,9 +11,11 @@ public class bfclient {
     
     final static String M_LINKDOWN  = "LINKDOWN";
     final static String M_LINKUP    = "LINKUP";
+    final static String M_SHOWRT    = "SHOWRT";
     final static String M_CLOSE     = "CLOSE";
     final static String M_QUIT      = "QUIT";
     final static String M_TRANSFER  = "TRANSFER";
+    
     final static String M_PING      = "PING";
     final static String M_TROUTE    = "TRACEROUTE";
     
@@ -60,7 +62,6 @@ public class bfclient {
         // start UI
         bfclient bfc = new bfclient ();
         bfc.startConsole ();
-        System.exit (0);
     }
     
     public bfclient () {
@@ -72,37 +73,60 @@ public class bfclient {
         System.out.println ("Welcome to bfclient console!");
         
         while (true) {
+            // read user input
             System.out.print ("$ ");
             String userInput = scn.nextLine ().trim ();
-            
-            if (userInput.equals (M_CLOSE)) {
-                
-            }
-            
+        
+            // processing input tokens
             String[] toks = userInput.split (" ");
             
             if (toks.length == 0)
-                return;
+                continue;
             
             // we just take lower and upper case
             String cmd = toks[0].toUpperCase ();
             
             if (cmd.equals (M_LINKDOWN)) {
+                processLinkDown (toks);
             } else if (cmd.equals (M_LINKUP)) {
-                System.out.println ("echo > " + cmd);
-            } else if (cmd.equals (M_CLOSE) || cmd.equals (M_QUIT)) {
-                // should we flush the routing table?
-                System.out.println ("Bye-bye");
-                return;
+                processLinkUp (toks);
+            } else if (cmd.equals (M_SHOWRT)) {
+                processShowRt (toks);
             } else if (cmd.equals (M_TRANSFER)) {
-                System.out.println ("echo > " + cmd);
+                processTransfer (toks);
             } else if (cmd.equals (M_PING)) {
-                System.out.println ("echo > " + cmd);
+                processPing (toks);
             } else if (cmd.equals (M_TROUTE)) {
-                System.out.println ("echo > " + cmd);
+                processTroute (toks);
+            } else if (cmd.equals (M_CLOSE) || cmd.equals (M_QUIT)) {
+                processClose ();
             } else {
                 System.out.println ("Unknown command: " + userInput);
             }
+            
+            System.out.println ("echo > " + cmd);
         }
+    }
+    
+    void processLinkDown (String[] toks) {
+    }
+    
+    void processLinkUp (String[] toks) {
+    }
+    
+    void processShowRt (String[] toks) {
+    }
+    
+    void processClose () {
+        System.exit (0);
+    }
+    
+    void processTransfer (String[] toks) {
+    }
+    
+    void processPing (String[] toks) {
+    }
+    
+    void processTroute (String[] toks) {
     }
 }

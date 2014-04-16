@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.*;
 
 public class bfclient_repo {
 
@@ -8,6 +9,11 @@ public class bfclient_repo {
     int m_port;
     int m_timeout;
     String m_configFileName;
+    
+    // The routing table
+    Vector<bfclient_rentry> m_rtable;
+    
+    // synchronous lock
     Object m_lock;
     
     static {
@@ -39,7 +45,8 @@ public class bfclient_repo {
     
     private bfclient_repo (String fname) {
         m_configFileName = fname;
-        m_lock = new Object ();
+        m_rtable = new Vector<bfclient_rentry> ();
+        m_lock = new Object (); 
     }
     
     public void parseConfigFile () {
@@ -111,5 +118,8 @@ public class bfclient_repo {
     // @lfred: unit in second
     public int getTimeout () {
         return m_timeout;
+    }
+    
+    public void showRouteTable () {
     }
 }
