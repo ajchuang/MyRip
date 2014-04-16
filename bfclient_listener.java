@@ -34,8 +34,7 @@ public class bfclient_listener implements Runnable {
                 DatagramPacket receivePacket = new DatagramPacket (receiveData, receiveData.length);
                 socket.receive (receivePacket);
                 
-                //String str = new String (receivePacket.getData(), "UTF-8");
-                //System.out.println ("[NTF] " + str);
+                
             }
         } catch (Exception e) {
             bfclient.logExp (e, true);

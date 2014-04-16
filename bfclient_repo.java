@@ -103,10 +103,12 @@ public class bfclient_repo {
         return m_port;
     }
     
+    // @lfred: unit in seconds
     public void setTimeout (int to) {
         m_timeout = to;
     } 
     
+    // @lfred: unit in second
     public int getTimeout () {
         return m_timeout;
     }

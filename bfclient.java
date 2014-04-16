@@ -17,6 +17,10 @@ public class bfclient {
         System.out.println ("  [Info] " + s);
     }
     
+    public static void logDetail (String s) {
+        System.out.println ("    [DTL] " + s);
+    }
+    
     public static void logExp (Exception e, boolean isSysDead) {
         System.out.println ("[Exp] " + e);
         e.printStackTrace ();
@@ -29,19 +33,24 @@ public class bfclient {
         
         if (args.length != 1) {
             logErr ("Parameter setting is incorrect.");
+            logErr ("Please set your config file correctly");
             return;
         }
         
         String config = args[0];
         
+        // create repo & parsing config
         bfclient_repo repo = bfclient_repo.createRepo (config);
-        bfclient bfc = new bfclient ();
         repo.parseConfigFile ();
+        
+        // start main thread
+        new Thread (bfclient_proc.getMainProc ()).start ();
         
         // start server
         new Thread (bfclient_listener.getListener ()).start (); 
         
         // start UI
+        bfclient bfc = new bfclient ();
         bfc.startConsole ();
         System.exit (0);
     }
