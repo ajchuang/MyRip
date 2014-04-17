@@ -1,5 +1,6 @@
 import java.util.*;
 import java.io.*;
+import java.util.logging.*;
 
 
 // @lfred: Thread analysis: 
@@ -9,26 +10,52 @@ import java.io.*;
 // extra feature: ping, traceroute
 public class bfclient {
     
-    final static String M_LINKDOWN  = "LINKDOWN";
-    final static String M_LINKUP    = "LINKUP";
-    final static String M_SHOWRT    = "SHOWRT";
-    final static String M_CLOSE     = "CLOSE";
-    final static String M_QUIT      = "QUIT";
-    final static String M_TRANSFER  = "TRANSFER";
+    public final static String M_LINKDOWN  = "LINKDOWN";
+    public final static String M_LINKUP    = "LINKUP";
+    public final static String M_SHOWRT    = "SHOWRT";
+    public final static String M_CLOSE     = "CLOSE";
+    public final static String M_QUIT      = "QUIT";
+    public final static String M_TRANSFER  = "TRANSFER";
     
-    final static String M_PING      = "PING";
-    final static String M_TROUTE    = "TRACEROUTE";
+    public final static String M_PING      = "PING";
+    public final static String M_TROUTE    = "TRACEROUTE";
+    public final static String M_LOG       = "LOG";
+    public final static String M_UPDATE_TO = "UPDATE_TIMER_TO";
+    
+    final static String M_LOG_FILE         = "log.txt";
+    
+    static Logger sm_lgr;  
+    static FileHandler sm_loggerFh;
+    
+    static {
+        try {
+            sm_lgr = Logger.getAnonymousLogger ();
+            sm_loggerFh = new FileHandler (M_LOG_FILE);
+            sm_lgr.addHandler (sm_loggerFh);
+            sm_lgr.setUseParentHandlers (false);
+            sm_loggerFh.setFormatter (new SimpleFormatter ());
+            
+        } catch (Exception e) {
+            System.out.println ("Severe exception in system booting");
+            System.exit (0);
+        }        
+    }
     
     public static void logErr (String s) {
         System.out.println ("[Err] " + s);
+        sm_lgr.severe ("[Err] " + s);
     }
     
     public static void logInfo (String s) {
-        System.out.println ("  [Info] " + s);
+        sm_lgr.info ("[Info] " + s);
     }
     
     public static void logDetail (String s) {
-        System.out.println ("    [DTL] " + s);
+        sm_lgr.info ("[DTL] " + s);
+    }
+    
+    public static void printMsg (String s) {
+        System.out.println (s);
     }
     
     public static void logExp (Exception e, boolean isSysDead) {
@@ -47,9 +74,8 @@ public class bfclient {
             return;
         }
         
-        String config = args[0];
-        
         // create repo & parsing config
+        String config = args[0];
         bfclient_repo repo = bfclient_repo.createRepo (config);
         repo.parseConfigFile ();
         
@@ -98,13 +124,19 @@ public class bfclient {
                 processPing (toks);
             } else if (cmd.equals (M_TROUTE)) {
                 processTroute (toks);
+            } else if (cmd.equals (M_LOG)) {    
+                processLog (toks);
             } else if (cmd.equals (M_CLOSE) || cmd.equals (M_QUIT)) {
                 processClose ();
             } else {
                 System.out.println ("Unknown command: " + userInput);
             }
             
-            System.out.println ("echo > " + cmd);
+            try {
+                Thread.sleep (200);
+            } catch (Exception e) {
+                bfclient.logExp (e, false);
+            }
         }
     }
     
@@ -115,6 +147,7 @@ public class bfclient {
     }
     
     void processShowRt (String[] toks) {
+        bfclient_repo.getRepo ().showRouteTable ();
     }
     
     void processClose () {
@@ -125,8 +158,34 @@ public class bfclient {
     }
     
     void processPing (String[] toks) {
+        
+        if (toks.length != 3) {
+            printMsg ("Command format error.");
+            printMsg ("[Usage] ping [ip] [port]");
+            return;
+        }
+        
+        bfclient_msg ping = new bfclient_msg ();
+        ping.enqueue (M_PING);
+        ping.enqueue (toks[1]);
+        ping.enqueue (toks[2]);
+        bfclient_proc.getMainProc ().enqueueMsg (ping);
     }
     
     void processTroute (String[] toks) {
+    }
+    
+    void processLog (String[] toks) {
+        
+        try {
+            BufferedInputStream reader = new BufferedInputStream (new FileInputStream (M_LOG_FILE));
+            while (reader.available() > 0) {
+                System.out.print ((char)reader.read ());
+            }
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+        
+        printMsg ("");
     }
 }

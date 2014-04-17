@@ -1,6 +1,7 @@
 import java.util.*;
 import java.net.*;
 import java.io.*;
+import java.nio.*;
 
 public class bfclient_listener implements Runnable {
 
@@ -34,10 +35,45 @@ public class bfclient_listener implements Runnable {
                 DatagramPacket receivePacket = new DatagramPacket (receiveData, receiveData.length);
                 socket.receive (receivePacket);
                 
+                // handle packets
+                decodeRawPacket (receiveData);
+                
                 
             }
         } catch (Exception e) {
             bfclient.logExp (e, true);
+        }
+    }
+    
+    void decodeRawPacket (byte[] rawPacket) {
+        
+        bfclient.logInfo ("Decoding packet");
+        
+        try {
+            byte[] destRawAddr = new byte[4];
+            byte[] destRawPort = new byte[4];
+            byte[] srcRawAddr  = new byte[4];
+            byte[] srcRawPort  = new byte[4];
+            byte[] control     = new byte[4];
+        
+            byte[] rawDataLen  = new byte[4];
+            byte[] rawData;
+        
+            System.arraycopy (rawPacket,   0, destRawAddr, 0, 4);
+            System.arraycopy (rawPacket,   4, destRawPort, 0, 4);
+            System.arraycopy (rawPacket,   8, srcRawAddr,  0, 4);
+            System.arraycopy (rawPacket,  12, srcRawPort,  0, 4);
+            System.arraycopy (rawPacket,  16, control,     0, 4);
+            System.arraycopy (rawPacket,  20, rawDataLen,  0, 4);
+        
+            bfclient.printMsg ("[DEC] destRawAddr: " + InetAddress.getByAddress (destRawAddr));
+            bfclient.printMsg ("[DEC] destRawPort: " + ByteBuffer.wrap (destRawPort).getInt ());
+            bfclient.printMsg ("[DEC] srcRawAddr: "  + InetAddress.getByAddress (srcRawAddr));
+            bfclient.printMsg ("[DEC] srcRawPort: "  + ByteBuffer.wrap (srcRawPort).getInt ());
+            //bfclient.logInfo ("control: "     + control.length);
+            //bfclient.logInfo ("rawDataLen: "  + rawDataLen.length);
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
         }
     }
 }

@@ -5,19 +5,26 @@ import java.util.*;
 public class bfclient_repo {
 
     static bfclient_repo m_repo;
-
+    static InetAddress m_hostAddr;
+    
     int m_port;
     int m_timeout;
     String m_configFileName;
     
     // The routing table
     Vector<bfclient_rentry> m_rtable;
+    Vector<bfclient_rentry> m_localEntryIdx;
     
     // synchronous lock
     Object m_lock;
     
     static {
-        m_repo = null;
+        try {
+            m_repo = null;
+            m_hostAddr = InetAddress.getLocalHost ();
+        } catch (Exception e) {
+            bfclient.logExp (e, true);
+        }
     }
     
     public static bfclient_repo createRepo (String fname) {
@@ -46,6 +53,7 @@ public class bfclient_repo {
     private bfclient_repo (String fname) {
         m_configFileName = fname;
         m_rtable = new Vector<bfclient_rentry> ();
+        m_localEntryIdx = new Vector<bfclient_rentry> ();
         m_lock = new Object (); 
     }
     
@@ -89,9 +97,18 @@ public class bfclient_repo {
                 System.exit (0);
             }
             
+            int intf = 0;
+            
             while ((line = br.readLine ()) != null) {
                 String[] ln = line.split (":| ");
                 bfclient.logInfo ("ip: " + ln[0] + " port: " + ln[1] + " weight: " + ln[2]);
+                
+                // insert into routing table
+                bfclient_rentry ent = bfclient_rentry.rentryFactory (ln[0], ln[1], ln[2], true);
+                ent.setOn (true);
+                ent.setIntfIdx (intf++);
+                m_rtable.add (ent);
+                m_localEntryIdx.add (ent);
             }
             
             br.close ();
@@ -102,6 +119,10 @@ public class bfclient_repo {
     }
 
     // getters & setters
+    public final InetAddress getLocalAddr () {
+        return m_hostAddr;
+    }
+    
     public void setPort (int port) {
         m_port = port;
     }
@@ -120,6 +141,29 @@ public class bfclient_repo {
         return m_timeout;
     }
     
+    // not thread safe printing.
     public void showRouteTable () {
+        synchronized (m_lock) {
+            System.out.println ("Current Routing Table: ");
+            System.out.println ("Destination\t\tCost\tInterface");
+            for (bfclient_rentry ent:m_rtable) {
+                System.out.println (ent);
+            }
+        }
+    }
+    
+    public final bfclient_rentry searchRoutingTable (InetAddress addr, int port) {
+        
+        bfclient_rentry ret = null;
+        
+        synchronized (m_lock) {
+            for (bfclient_rentry ent:m_rtable) {
+                if (ent.compare (addr, port) == true) {
+                    ret = ent;
+                }
+            }
+        }
+        
+        return ret;
     }
 }
