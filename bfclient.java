@@ -1,6 +1,8 @@
 import java.util.*;
 import java.io.*;
 import java.util.logging.*;
+import java.security.*;
+import java.math.*;
 
 
 // @lfred: Thread analysis: 
@@ -22,13 +24,18 @@ public class bfclient {
     public final static String M_LOG       = "LOG";
     public final static String M_UPDATE_TO = "UPDATE_TIMER_TO";
     
-    final static String M_LOG_FILE         = "log.txt";
+    static String M_LOG_FILE;
     
     static Logger sm_lgr;  
     static FileHandler sm_loggerFh;
     
     static {
         try {
+            // assign random log file name
+            SecureRandom rdm = new SecureRandom ();
+            M_LOG_FILE = "./log/" + new BigInteger (32, rdm).toString (16) + ".log";
+            System.out.println ("Logging file: " + M_LOG_FILE);
+                        
             sm_lgr = Logger.getAnonymousLogger ();
             sm_loggerFh = new FileHandler (M_LOG_FILE);
             sm_lgr.addHandler (sm_loggerFh);

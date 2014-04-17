@@ -36,8 +36,8 @@ public class bfclient_listener implements Runnable {
                 socket.receive (receivePacket);
                 
                 // handle packets
-                decodeRawPacket (receiveData);
-                
+                bfclient_packet rcv = new bfclient_packet (receiveData);
+                bfclient.logInfo ("packet received");
                 
             }
         } catch (Exception e) {
