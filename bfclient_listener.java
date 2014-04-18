@@ -85,6 +85,8 @@ public class bfclient_listener implements Runnable {
                     Integer.toString (inc.getSrcPort ()));
             } else if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE) {
                 bfclient.logInfo ("Receiving Router Update");
+            } else if (inc.getType () == bfclient_packet.M_HOST_UNKNOWN_PACKET) {
+                bfclient.logInfo ("Receiving unknown packet error");
             } else {
                 bfclient.logInfo ("Receiving unknown packet");
                 // unknown type - drop and return an error msg

@@ -67,6 +67,8 @@ public class bfclient_proc implements Runnable {
                     processPingRsp (msg);
                 } else if (type.equals (bfclient_msg.M_UPDATE_TO)) {
                     processUpdateTimeout (msg);
+                } else if (type.equals (bfclient_msg.M_UNKNOWN_PKT)) {
+                    processUnknownPkt (msg);
                 } else {
                     // unknown message - drop it
                 }
@@ -142,6 +144,31 @@ public class bfclient_proc implements Runnable {
                 packPacket (
                     null, addr, port, hostAddr, hostPort, 
                     bfclient_packet.M_PING_RSP, (byte)0x01, (byte)0x01);
+            bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
+            sendPacket (rawPacket, nextHop);
+            
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+    }
+    
+    // when receiving unknown packet, just ack with an error
+    void processUnknownPkt (bfclient_msg msg) {
+        try {
+            bfclient_repo repo = bfclient_repo.getRepo ();
+            
+            String destAddrStr = msg.dequeue ();
+            String destPortStr = msg.dequeue ();
+            InetAddress hostAddr = repo.getLocalAddr ();
+            int hostPort = repo.getPort ();
+        
+            // find next step
+            InetAddress addr = InetAddress.getByName (destAddrStr);
+            int port = Integer.parseInt (destPortStr);
+            byte[] rawPacket = 
+                packPacket (
+                    null, addr, port, hostAddr, hostPort, 
+                    bfclient_packet.M_HOST_UNKNOWN_PACKET, (byte)0x01, (byte)0x01);
             bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
             sendPacket (rawPacket, nextHop);
             
