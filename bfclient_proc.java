@@ -69,8 +69,10 @@ public class bfclient_proc implements Runnable {
                     processUpdateTimeout (msg);
                 } else if (type.equals (bfclient_msg.M_UNKNOWN_PKT)) {
                     processUnknownPkt (msg);
+                } else if (type.equals (bfclient_msg.M_REMOTE_VEC)) {
+                    processRemoteVec (msg);
                 } else {
-                    // unknown message - drop it
+                    bfclient.logErr ("Unknown msg received: " + type);
                 }
                 
             } catch (Exception e) {
@@ -175,6 +177,9 @@ public class bfclient_proc implements Runnable {
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
+    }
+    
+    void processRemoteVec (bfclient_msg msg) {
     }
     
     void createCntlPacket (InetAddress dstAddr, int dstPort, byte type) {

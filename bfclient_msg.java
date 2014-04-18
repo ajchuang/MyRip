@@ -8,9 +8,12 @@ public class bfclient_msg {
     public final static String M_PING_RSP       = "M_PING_RSP";
     public final static String M_UPDATE_TO      = "M_UPDATE_TO";
     public final static String M_UNKNOWN_PKT    = "M_UNKNOWN_PKT";
+    public final static String M_REMOTE_VEC     = "M_REMOTE_VEC";
+    
 
     LinkedList<String> m_data;
     byte[] m_binData;
+    Object m_userData;
 
     public bfclient_msg () {
         m_data = new LinkedList<String> ();
@@ -32,6 +35,15 @@ public class bfclient_msg {
         return m_data.size ();
     }
     
+    public void setUserData (Object o) {
+        m_userData = o;
+    }
+    
+    public Object getUserData () {
+        return m_userData;
+    }
+    
+    /*
     public byte[] flatten () {
         
         String outString = new String ();
@@ -51,6 +63,7 @@ public class bfclient_msg {
             return cmd;
         }
     }
+    */
     
     public void showHeader () {
         if (m_data.size () == 0)

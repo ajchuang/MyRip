@@ -85,8 +85,17 @@ public class bfclient_listener implements Runnable {
                     Integer.toString (inc.getSrcPort ()));
             } else if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE) {
                 bfclient.logInfo ("Receiving Router Update");
+                bfclient_msg msg = new bfclient_msg ();
+                msg.enqueue (bfclient_msg.M_REMOTE_VEC);
+                msg.setUserData ((Object)inc);
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_HOST_UNKNOWN_PACKET) {
                 bfclient.logInfo ("Receiving unknown packet error");
+                bfclient_msg msg = new bfclient_msg ();
+                msg.enqueue (bfclient_msg.M_UNKNOWN_PKT);
+                msg.enqueue (inc.getSrcAddr ().getHostAddress ());
+                msg.enqueue (Integer.toString (inc.getSrcPort ()));
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else {
                 bfclient.logInfo ("Receiving unknown packet");
                 // unknown type - drop and return an error msg
