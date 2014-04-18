@@ -36,11 +36,9 @@ public class bfclient_listener implements Runnable {
                 socket.receive (receivePacket);
                 
                 // handle packets
+                bfclient.logInfo ("incoming packet received");
                 bfclient_packet rcv = new bfclient_packet (receiveData);
-                bfclient.logInfo ("packet received");
-                
                 packetProcessor (rcv);
-                
             }
         } catch (Exception e) {
             bfclient.logExp (e, true);
@@ -85,6 +83,8 @@ public class bfclient_listener implements Runnable {
                     "> ping response from " + 
                     inc.getSrcAddr ().getHostAddress () + ":" + 
                     Integer.toString (inc.getSrcPort ()));
+            } else if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE) {
+                bfclient.logInfo ("Receiving Router Update");
             } else {
                 bfclient.logInfo ("Receiving unknown packet");
                 // unknown type - drop and return an error msg

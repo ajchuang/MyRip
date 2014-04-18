@@ -48,7 +48,7 @@ public class bfclient_proc implements Runnable {
             new TimerTask () {
                 public void run () {
                     bfclient_msg msg = new bfclient_msg ();
-                    msg.enqueue (bfclient.M_UPDATE_TO);
+                    msg.enqueue (bfclient_msg.M_UPDATE_TO);
                     bfclient_proc.getMainProc ().enqueueMsg (msg);
                 }
             }, 1000, repo.getTimeout () * 1000);
@@ -79,11 +79,26 @@ public class bfclient_proc implements Runnable {
     
     public void processUpdateTimeout (bfclient_msg msg) {
         
+        bfclient.logInfo ("processUpdateTimeout");
+        
         // send whole vector to neighbor
         bfclient_repo repo = bfclient_repo.getRepo ();
         InetAddress hostAddr = repo.getLocalAddr ();
         int hostPort = repo.getPort ();
         
+        int localIfCnt = repo.getLocalIntfCnt ();
+        
+        for (int i=0; i<localIfCnt; ++i) {
+            bfclient.logInfo ("processUpdateTimeout - 1");
+            bfclient_rentry lent = repo.getLocalIntfEntry (i);
+            byte[] rtb = repo.getFlatRoutingTable (lent);
+            byte[] pkt = 
+                packPacket (
+                    rtb, lent.getAddr (), lent.getPort (), repo.getLocalAddr (), repo.getPort (), 
+                    bfclient_packet.M_ROUTER_UPDATE, (byte)0x01, (byte)0x01);
+            
+            sendPacket (pkt, lent);
+        }
     }
     
     void processPing (bfclient_msg msg) {

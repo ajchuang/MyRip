@@ -1,11 +1,12 @@
 import java.net.*;
 import java.util.*;
+import java.nio.*;
 
 public class bfclient_rentry {
 
     InetAddress m_addr;
     int     m_port;
-    double  m_linkCost;
+    float   m_linkCost;
     
     bfclient_rentry m_nextHop;
     
@@ -22,7 +23,7 @@ public class bfclient_rentry {
                 new bfclient_rentry (
                         InetAddress.getByName (addr),
                         Integer.parseInt (port),
-                        Double.parseDouble (linkCost),
+                        Float.parseFloat (linkCost),
                         localIf);
         } catch (Exception e) {
             bfclient.logExp (e, false);
@@ -31,7 +32,7 @@ public class bfclient_rentry {
         return ent;
     }
     
-    public bfclient_rentry (InetAddress addr, int port, double linkCost, boolean localIf) {
+    public bfclient_rentry (InetAddress addr, int port, float linkCost, boolean localIf) {
         
         // major fields
         m_addr = addr;
@@ -40,6 +41,15 @@ public class bfclient_rentry {
         m_localIntf = localIf;
         
         // conservative default value
+        m_nextHop = null;
+        m_intfIdx = -1;
+        m_isOn = false;
+    }
+    
+    private bfclient_rentry () {
+
+        // conservative default value
+        m_localIntf = false;
         m_nextHop = null;
         m_intfIdx = -1;
         m_isOn = false;
@@ -65,20 +75,28 @@ public class bfclient_rentry {
         m_isOn = on;
     }
     
-    public void setNextHop (bfclient_rentry next) {
-        m_nextHop = next;
-    }
-    
     public bfclient_rentry getNextHop () {
         return m_nextHop;
+    }
+    
+    public void setNextHop (bfclient_rentry next) {
+        m_nextHop = next;
     }
     
     public InetAddress getAddr () {
         return m_addr;
     }
     
+    public void setAddr (InetAddress a) {
+        m_addr = a;
+    }
+    
     public int getPort () {
         return m_port;
+    }
+    
+    public void setPort (int p) {
+        m_port = p;
     }
     
     @Override
@@ -94,9 +112,57 @@ public class bfclient_rentry {
             return false;
     }
     
-    //public static byte[] deflate (bfclient_rentry ent) {
-    //}
+    public byte[] deflate () {
+        
+        byte[] out = new byte[20];
+        
+        byte[] addr = m_addr.getAddress ();
+        byte[] port = ByteBuffer.allocate(4).putInt(m_port).array ();
+        byte[] cost = ByteBuffer.allocate(4).putFloat (m_linkCost).array ();
+        byte[] nextAddr;
+        byte[] nextPort;
+        
+        if (m_nextHop == null) {
+            nextAddr = ByteBuffer.allocate(4).putInt(0).array ();
+            nextPort = ByteBuffer.allocate(4).putInt(0).array ();
+        } else {
+            nextAddr = m_nextHop.getAddr().getAddress();
+            nextPort = ByteBuffer.allocate(4).putInt(m_nextHop.getPort()).array ();
+        }
+        
+        System.arraycopy (addr,     0, out,  0, 4);
+        System.arraycopy (port,     0, out,  4, 4);
+        System.arraycopy (cost,     0, out,  8, 4);
+        System.arraycopy (nextAddr, 0, out, 12, 4);
+        System.arraycopy (nextPort, 0, out, 16, 4);
+        
+        return out;
+    }
     
-    //public static bfclient_rentry inflate (byte[] raw) {
-    //}
+    public void inflate (byte[] raw) {
+        
+        try {
+            byte[] addr = new byte[4];
+            byte[] port = new byte[4];
+            byte[] cost = new byte[4];
+            byte[] nextAddr = new byte[4];
+            byte[] nextPort = new byte[4];
+        
+            System.arraycopy (raw,  0, addr,      0, 4);
+            System.arraycopy (raw,  4, port,      0, 4);
+            System.arraycopy (raw,  8, cost,      0, 4);
+            System.arraycopy (raw, 12, nextAddr,  0, 4);
+            System.arraycopy (raw, 16, nextPort,  0, 4);
+        
+            m_addr = InetAddress.getByAddress (addr);
+            m_port = ByteBuffer.wrap (port).getInt ();
+            m_linkCost = ByteBuffer.wrap (cost).getFloat ();
+        
+            bfclient_rentry nextHop = new bfclient_rentry ();
+            nextHop.setAddr (InetAddress.getByAddress (nextAddr));
+            nextHop.setPort (ByteBuffer.wrap (nextPort).getInt ());
+        } catch (Exception e) {
+            bfclient.logExp (e, true);
+        }
+    }
 }

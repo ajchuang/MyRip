@@ -141,13 +141,13 @@ public class bfclient_repo {
         return m_timeout;
     }
     
-    // not thread safe printing.
+    // bad method - just to simplify
     public void showRouteTable () {
         synchronized (m_lock) {
-            System.out.println ("Current Routing Table: ");
-            System.out.println ("Destination\t\tCost\tInterface");
+            bfclient.printMsg ("Current Routing Table: ");
+            bfclient.printMsg ("Destination\t\tCost\tInterface");
             for (bfclient_rentry ent:m_rtable) {
-                System.out.println (ent);
+                bfclient.printMsg (ent.toString ());
             }
         }
     }
@@ -167,6 +167,37 @@ public class bfclient_repo {
         return ret;
     }
     
-    //public byte[] getRoutingTable () {
-    //}
+    // get local i/f count
+    public int getLocalIntfCnt () {
+        return m_localEntryIdx.size ();
+    }
+    
+    // get local i/f entry
+    public bfclient_rentry getLocalIntfEntry (int idx) {
+        if (idx < m_localEntryIdx.size ())
+            return m_localEntryIdx.elementAt (idx);
+        else
+            return null;
+    }
+    
+    // for given local entry, do 
+    public byte[] getFlatRoutingTable (bfclient_rentry local_if) {
+        
+        if (local_if.getOn () == false) {
+            return null;
+        }
+        
+        byte[] out = new byte[m_rtable.size () * 20];
+        int c_idx = 0;
+        
+        synchronized (m_lock) {
+            for (bfclient_rentry ent: m_rtable) {
+                byte[] current = ent.deflate ();
+                System.arraycopy (current, 0, out, c_idx, 20);
+                c_idx += 20;
+            }
+        }
+        
+        return out;
+    }
 }
