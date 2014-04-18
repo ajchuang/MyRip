@@ -39,41 +39,64 @@ public class bfclient_listener implements Runnable {
                 bfclient_packet rcv = new bfclient_packet (receiveData);
                 bfclient.logInfo ("packet received");
                 
+                packetProcessor (rcv);
+                
             }
         } catch (Exception e) {
             bfclient.logExp (e, true);
         }
     }
     
-    void decodeRawPacket (byte[] rawPacket) {
+    void packetProcessor (bfclient_packet inc) {
         
-        bfclient.logInfo ("Decoding packet");
+        //  if I am the receiver.
+        //      check packet type
+        //          a. ping: respond to the ping
+        //          b. traceroute: respond traceroute
+        //          c. router update: update rtable
+        //          d. data: save data
+        //  else 
+        //      if i can forward
+        //          forward
+        //      else
+        //          drop with a message    
         
-        try {
-            byte[] destRawAddr = new byte[4];
-            byte[] destRawPort = new byte[4];
-            byte[] srcRawAddr  = new byte[4];
-            byte[] srcRawPort  = new byte[4];
-            byte[] control     = new byte[4];
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        InetAddress myAddr = repo.getLocalAddr ();
+        bfclient.logInfo ("Rcvd my ip: "   + myAddr.getHostAddress ());
+        bfclient.logInfo ("Rcvd my port: " + Integer.toString (repo.getPort ()));
+        bfclient.logInfo ("Rcvd destination ip: "   + inc.getDstAddr ().getHostAddress ());
+        bfclient.logInfo ("Rcvd destination port: " + Integer.toString (inc.getDstPort ()));
+        bfclient.logInfo ("Rcvd packet type: " + Byte.toString (inc.getType ()));
         
-            byte[] rawDataLen  = new byte[4];
-            byte[] rawData;
-        
-            System.arraycopy (rawPacket,   0, destRawAddr, 0, 4);
-            System.arraycopy (rawPacket,   4, destRawPort, 0, 4);
-            System.arraycopy (rawPacket,   8, srcRawAddr,  0, 4);
-            System.arraycopy (rawPacket,  12, srcRawPort,  0, 4);
-            System.arraycopy (rawPacket,  16, control,     0, 4);
-            System.arraycopy (rawPacket,  20, rawDataLen,  0, 4);
-        
-            bfclient.printMsg ("[DEC] destRawAddr: " + InetAddress.getByAddress (destRawAddr));
-            bfclient.printMsg ("[DEC] destRawPort: " + ByteBuffer.wrap (destRawPort).getInt ());
-            bfclient.printMsg ("[DEC] srcRawAddr: "  + InetAddress.getByAddress (srcRawAddr));
-            bfclient.printMsg ("[DEC] srcRawPort: "  + ByteBuffer.wrap (srcRawPort).getInt ());
-            //bfclient.logInfo ("control: "     + control.length);
-            //bfclient.logInfo ("rawDataLen: "  + rawDataLen.length);
-        } catch (Exception e) {
-            bfclient.logExp (e, false);
+        if (myAddr.equals (inc.getDstAddr ()) && repo.getPort () == inc.getDstPort ()) {
+            
+            // I am the destination
+            if (inc.getType () == bfclient_packet.M_PING_REQ) {
+                bfclient.logInfo ("Receiving ping request");
+                bfclient_msg msg = new bfclient_msg ();
+                msg.enqueue (bfclient_msg.M_PING_RSP);
+                msg.enqueue (inc.getSrcAddr ().getHostAddress ());
+                msg.enqueue (Integer.toString (inc.getSrcPort ()));
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } if (inc.getType () == bfclient_packet.M_PING_RSP) {
+                bfclient.logInfo ("Receiving ping response");
+                bfclient.printMsg (
+                    "> ping response from " + 
+                    inc.getSrcAddr ().getHostAddress () + ":" + 
+                    Integer.toString (inc.getSrcPort ()));
+            } else {
+                bfclient.logInfo ("Receiving unknown packet");
+                // unknown type - drop and return an error msg
+                bfclient_msg msg = new bfclient_msg ();
+                msg.enqueue (bfclient_msg.M_UNKNOWN_PKT);
+                msg.enqueue (inc.getSrcAddr ().getHostAddress ());
+                msg.enqueue (Integer.toString (inc.getSrcPort ()));
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            }
+        } else {
+            bfclient.logInfo ("packet to forward");
+            // check if I can forward
         }
     }
 }

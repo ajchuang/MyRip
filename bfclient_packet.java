@@ -4,11 +4,24 @@ import java.nio.*;
 
 public class bfclient_packet {
     
+    // Packet types
+    // control packets
     public final static byte M_PING_REQ = 0x01;
     public final static byte M_PING_RSP = 0x02;
     public final static byte M_TROUTE_REQ = 0x03;
-    public final static byte M_TROUTE_RSP = 0x04;    
+    public final static byte M_TROUTE_RSP_OK = 0x04;
+    public final static byte M_TROUTE_RSP_FAILED = 0x05;   
+    
+    // routing packets
     public final static byte M_ROUTER_UPDATE = 0x10;
+    
+    // user packet
+    public final static byte M_USER_DATA = 0x20;
+    
+    // error msg
+    public final static byte M_HOST_NOT_REACHABLE  = (byte)0xf0;
+    public final static byte M_HOST_UNKNOWN_PACKET = (byte)0xf1;
+    //------------ 
 
     InetAddress m_dstAddr;
     int         m_dstPort;

@@ -166,4 +166,7 @@ public class bfclient_repo {
         
         return ret;
     }
+    
+    //public byte[] getRoutingTable () {
+    //}
 }

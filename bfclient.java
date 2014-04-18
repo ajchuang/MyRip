@@ -173,7 +173,7 @@ public class bfclient {
         }
         
         bfclient_msg ping = new bfclient_msg ();
-        ping.enqueue (M_PING);
+        ping.enqueue (bfclient_msg.M_PING_REQ);
         ping.enqueue (toks[1]);
         ping.enqueue (toks[2]);
         bfclient_proc.getMainProc ().enqueueMsg (ping);

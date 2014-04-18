@@ -61,9 +61,11 @@ public class bfclient_proc implements Runnable {
                 
                 String type = msg.dequeue ();
                 
-                if (type.equals (bfclient.M_PING)) {
+                if (type.equals (bfclient_msg.M_PING_REQ)) {
                     processPing (msg);
-                } else if (type.equals (bfclient.M_UPDATE_TO)) {
+                } else if (type.equals (bfclient_msg.M_PING_RSP)) {
+                    processPingRsp (msg);
+                } else if (type.equals (bfclient_msg.M_UPDATE_TO)) {
                     processUpdateTimeout (msg);
                 } else {
                     // unknown message - drop it
@@ -84,7 +86,7 @@ public class bfclient_proc implements Runnable {
         
     }
     
-    public void processPing (bfclient_msg msg) {
+    void processPing (bfclient_msg msg) {
         
         try {
             bfclient_repo repo = bfclient_repo.getRepo ();
@@ -98,13 +100,46 @@ public class bfclient_proc implements Runnable {
             InetAddress addr = InetAddress.getByName (destAddrStr);
             int port = Integer.parseInt (destPortStr);
             byte[] rawPacket = 
-                packPacket (null, addr, port, hostAddr, hostPort, M_PKT_TYPE_PING, (byte)0x01, (byte)0x01);
+                packPacket (
+                    null, addr, port, hostAddr, hostPort, 
+                    bfclient_packet.M_PING_REQ, (byte)0x01, (byte)0x01);
             bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
             sendPacket (rawPacket, nextHop);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
+    }
+    
+    void processPingRsp (bfclient_msg msg) {
+        try {
+            bfclient_repo repo = bfclient_repo.getRepo ();
+            
+            String destAddrStr = msg.dequeue ();
+            String destPortStr = msg.dequeue ();
+            InetAddress hostAddr = repo.getLocalAddr ();
+            int hostPort = repo.getPort ();
+        
+            // find next step
+            InetAddress addr = InetAddress.getByName (destAddrStr);
+            int port = Integer.parseInt (destPortStr);
+            byte[] rawPacket = 
+                packPacket (
+                    null, addr, port, hostAddr, hostPort, 
+                    bfclient_packet.M_PING_RSP, (byte)0x01, (byte)0x01);
+            bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
+            sendPacket (rawPacket, nextHop);
+            
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+    }
+    
+    void createCntlPacket (InetAddress dstAddr, int dstPort, byte type) {
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        InetAddress myAddr = repo.getLocalAddr ();
+        repo.getPort ();
     }
     
     // pack the msg into a valid packet
@@ -160,7 +195,7 @@ public class bfclient_proc implements Runnable {
     void sendPacket (byte[] msg, bfclient_rentry rentry) {
         
         if (rentry != null) {
-            bfclient.printMsg ("Packet is forwarding to " + rentry);
+            bfclient.logInfo ("Packet is forwarding to " + rentry);
             
             InetAddress nextAddr;
             int nextPort;

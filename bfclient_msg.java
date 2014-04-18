@@ -2,6 +2,12 @@ import java.util.*;
 import java.nio.charset.*;
 
 public class bfclient_msg {
+    
+    // msg type
+    public final static String M_PING_REQ       = "M_PING_REQ";
+    public final static String M_PING_RSP       = "M_PING_RSP";
+    public final static String M_UPDATE_TO      = "M_UPDATE_TO";
+    public final static String M_UNKNOWN_PKT    = "M_UNKNOWN_PKT";
 
     LinkedList<String> m_data;
     byte[] m_binData;
