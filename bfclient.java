@@ -49,7 +49,6 @@ public class bfclient {
     }
     
     public static void logErr (String s) {
-        System.out.println ("[Err] " + s);
         sm_lgr.severe ("[Err] " + s);
     }
     
@@ -182,13 +181,23 @@ public class bfclient {
     void processTroute (String[] toks) {
     }
     
+    //  @lfred: 
+    //      this function prints the log file we are running.
+    //      toks[] are not used actually.
     void processLog (String[] toks) {
-        
         try {
-            BufferedInputStream reader = new BufferedInputStream (new FileInputStream (M_LOG_FILE));
-            while (reader.available() > 0) {
-                System.out.print ((char)reader.read ());
+            
+            BufferedReader reader = new BufferedReader(new FileReader (M_LOG_FILE));
+            String line;
+            int toss = 0;
+            
+            while ((line = reader.readLine ()) != null) {
+                if (toss % 2 == 1)
+                    System.out.println (line);
+                    
+                toss++;
             }
+            
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }

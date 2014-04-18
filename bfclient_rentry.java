@@ -4,6 +4,8 @@ import java.nio.*;
 
 public class bfclient_rentry {
 
+    public final static int M_DEFLATE_SIZE = 20;
+
     InetAddress m_addr;
     int     m_port;
     float   m_linkCost;
@@ -13,6 +15,36 @@ public class bfclient_rentry {
     int     m_intfIdx;  // which interface we send
     boolean m_isOn;     // if the interface is on
     boolean m_localIntf;
+    
+    public static bfclient_rentry rentryFactory (byte[] data) {
+        bfclient_rentry ent = null;
+        
+        try { 
+            ent = new bfclient_rentry ();
+            ent.inflate (data);
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+        
+        return ent;
+    }
+    
+    public static bfclient_rentry rentryFactory (InetAddress addr, int port) {
+        bfclient_rentry ent = null;
+        
+        try { 
+            ent = 
+                new bfclient_rentry (
+                        addr,
+                        port,
+                        (float)0.0,
+                        false);
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+        
+        return ent;
+    }
     
     public static bfclient_rentry rentryFactory (String addr, String port, String linkCost, boolean localIf) {
         
@@ -32,7 +64,7 @@ public class bfclient_rentry {
         return ent;
     }
     
-    public bfclient_rentry (InetAddress addr, int port, float linkCost, boolean localIf) {
+    private bfclient_rentry (InetAddress addr, int port, float linkCost, boolean localIf) {
         
         // major fields
         m_addr = addr;
@@ -65,6 +97,14 @@ public class bfclient_rentry {
     
     public void setIntfIdx (int idx) {
         m_intfIdx = idx;
+    }
+    
+    public float getCost () {
+        return m_linkCost;
+    }
+    
+    public void setCost (float c) {
+        m_linkCost = c;
     }
     
     public boolean getOn () {
@@ -114,7 +154,7 @@ public class bfclient_rentry {
     
     public byte[] deflate () {
         
-        byte[] out = new byte[20];
+        byte[] out = new byte[M_DEFLATE_SIZE];
         
         byte[] addr = m_addr.getAddress ();
         byte[] port = ByteBuffer.allocate(4).putInt(m_port).array ();

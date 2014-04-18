@@ -143,12 +143,22 @@ public class bfclient_repo {
     
     // bad method - just to simplify
     public void showRouteTable () {
+        bfclient.printMsg ("Current Routing Table: ");
+        bfclient.printMsg ("Destination\t\tCost\tInterface");
+        
         synchronized (m_lock) {
-            bfclient.printMsg ("Current Routing Table: ");
-            bfclient.printMsg ("Destination\t\tCost\tInterface");
             for (bfclient_rentry ent:m_rtable) {
                 bfclient.printMsg (ent.toString ());
             }
+        }
+    }
+    
+    public void addRoutingEntry (bfclient_rentry newEnt) {
+        
+        bfclient.logInfo ("addRoutingEntry: " + newEnt);
+        
+        synchronized (m_lock) {
+            m_rtable.add (newEnt);
         }
     }
     

@@ -61,6 +61,7 @@ public class bfclient_listener implements Runnable {
         
         bfclient_repo repo = bfclient_repo.getRepo ();
         InetAddress myAddr = repo.getLocalAddr ();
+        
         bfclient.logInfo ("Rcvd my ip: "   + myAddr.getHostAddress ());
         bfclient.logInfo ("Rcvd my port: " + Integer.toString (repo.getPort ()));
         bfclient.logInfo ("Rcvd destination ip: "   + inc.getDstAddr ().getHostAddress ());
@@ -90,14 +91,13 @@ public class bfclient_listener implements Runnable {
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_HOST_UNKNOWN_PACKET) {
+                // debuggin - stop now
                 bfclient.logInfo ("Receiving unknown packet error");
-                bfclient_msg msg = new bfclient_msg ();
-                msg.enqueue (bfclient_msg.M_UNKNOWN_PKT);
-                msg.enqueue (inc.getSrcAddr ().getHostAddress ());
-                msg.enqueue (Integer.toString (inc.getSrcPort ()));
-                bfclient_proc.getMainProc ().enqueueMsg (msg);
+                System.exit (0);
             } else {
+                // debuggin - stop now
                 bfclient.logInfo ("Receiving unknown packet");
+                System.exit (0);
                 // unknown type - drop and return an error msg
                 bfclient_msg msg = new bfclient_msg ();
                 msg.enqueue (bfclient_msg.M_UNKNOWN_PKT);
@@ -107,7 +107,22 @@ public class bfclient_listener implements Runnable {
             }
         } else {
             bfclient.logInfo ("packet to forward");
-            // check if I can forward
+            
+            InetAddress dstAddr = inc.getDstAddr ();
+            int dstPort = inc.getDstPort ();
+            
+            bfclient_rentry ent = repo.searchRoutingTable (dstAddr, dstPort);
+            
+            if (ent != null) {
+                // forward the packet to next address
+                if (ent.isLocalIf () == true) {
+                } else {
+                }
+                
+            } else {
+                // just drop it - we should say "destination unreachable"
+            }
+            
         }
     }
 }

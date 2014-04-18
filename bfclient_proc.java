@@ -180,6 +180,87 @@ public class bfclient_proc implements Runnable {
     }
     
     void processRemoteVec (bfclient_msg msg) {
+        bfclient.logInfo ("processRemoteVec - enter");
+        
+        Object obj = msg.getUserData ();
+        
+        if (obj instanceof bfclient_packet == false) {
+            bfclient.logErr ("processRemoteVec: bad input");
+            return;
+        }
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        bfclient_packet inc = (bfclient_packet) obj;
+        InetAddress srcAddr = inc.getSrcAddr ();
+        int srcPort = inc.getSrcPort ();
+        
+        byte[] incTable = inc.getUserData ();
+        int numEntry = incTable.length / bfclient_rentry.M_DEFLATE_SIZE;
+        bfclient.logInfo ("processRemoteVec: total entry size: " + numEntry);
+        
+        // prepare nexthop & linkcost
+        bfclient_rentry nextHop = bfclient_rentry.rentryFactory (srcAddr, srcPort);
+        bfclient_rentry srcEntry = repo.searchRoutingTable (srcAddr, srcPort);
+        float linkCost = srcEntry.getCost ();
+        
+        //  for every entry in the packet
+        //  if this entry is me 
+        //      just ignore that.
+        //
+        //  find matching entry other than myself
+        //      if found,
+        //          compare the current cost and remote cost + link cost
+        //              if the new link is smaller
+        //                  add to table
+        //              else
+        //                  forget it
+        //      if not found
+        //          just add to the rtable
+        
+        for (int i=0; i<numEntry; ++i) {
+            
+            // inflate the received entry
+            byte[] curEntry = new byte[bfclient_rentry.M_DEFLATE_SIZE];
+            System.arraycopy (
+                incTable, i*bfclient_rentry.M_DEFLATE_SIZE, curEntry, 0, 
+                bfclient_rentry.M_DEFLATE_SIZE);
+            bfclient_rentry newEnt = bfclient_rentry.rentryFactory (curEntry);
+            
+            if (newEnt.getAddr ().equals (repo.getLocalAddr ()) && 
+                newEnt.getPort () == repo.getPort ()) {
+                // skip the entry - this is me
+                continue;
+            }
+            
+            float newCost = linkCost + newEnt.getCost ();
+            
+            // search routing table
+            bfclient_rentry rEnt = 
+                repo.searchRoutingTable (newEnt.getAddr (), newEnt.getPort ());
+            
+            if (rEnt != null) {
+                if (newCost < linkCost) {
+                    // put it into the rtable
+                    newEnt.setCost (newCost);
+                    newEnt.setNextHop (nextHop);
+                    newEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                    newEnt.setOn (true);
+                    repo.addRoutingEntry (newEnt);
+                } else {
+                    // drop it
+                }
+            } else {
+                 // just add to the rtable
+                newEnt.setCost (newCost);
+                newEnt.setNextHop (nextHop);
+                newEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                newEnt.setOn (true);
+                repo.addRoutingEntry (newEnt);
+            }
+        }
+        
+        
+        
     }
     
     void createCntlPacket (InetAddress dstAddr, int dstPort, byte type) {
@@ -269,6 +350,8 @@ public class bfclient_proc implements Runnable {
                 DatagramSocket socket = new DatagramSocket ();
                 socket.send (packet);                       
                 socket.close ();
+            } catch (java.io.IOException ioe) {
+                bfclient.logErr ("Sending pkt error: " + ioe);
             } catch (Exception e) {
                 bfclient.logExp (e, false);
             }

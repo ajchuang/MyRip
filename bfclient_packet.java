@@ -4,6 +4,8 @@ import java.nio.*;
 
 public class bfclient_packet {
     
+    public final static int M_PKT_HEADER_SIZE = 24;
+    
     // Packet types
     // control packets
     public final static byte M_PING_REQ = 0x01;

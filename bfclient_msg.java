@@ -9,6 +9,7 @@ public class bfclient_msg {
     public final static String M_UPDATE_TO      = "M_UPDATE_TO";
     public final static String M_UNKNOWN_PKT    = "M_UNKNOWN_PKT";
     public final static String M_REMOTE_VEC     = "M_REMOTE_VEC";
+    public final static String M_FORWARD        = "M_FORWARD";
     
 
     LinkedList<String> m_data;
