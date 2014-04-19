@@ -147,9 +147,30 @@ public class bfclient {
     }
     
     void processLinkDown (String[] toks) {
+        
+        if (toks.length != 3) {
+            printMsg ("Command format error.");
+            printMsg ("[Usage] LINKDOWN [ip] [port]");
+            return;
+        }
+        
+        bfclient_msg ping = new bfclient_msg (bfclient_msg.M_LINK_DOWN);
+        ping.enqueue (toks[1]);
+        ping.enqueue (toks[2]);
+        bfclient_proc.getMainProc ().enqueueMsg (ping);
     }
     
     void processLinkUp (String[] toks) {
+        if (toks.length != 3) {
+            printMsg ("Command format error.");
+            printMsg ("[Usage] LINKUP [ip] [port]");
+            return;
+        }
+        
+        bfclient_msg ping = new bfclient_msg (bfclient_msg.M_LINK_UP);
+        ping.enqueue (toks[1]);
+        ping.enqueue (toks[2]);
+        bfclient_proc.getMainProc ().enqueueMsg (ping);
     }
     
     void processShowRt (String[] toks) {

@@ -103,6 +103,14 @@ public class bfclient_proc implements Runnable {
                         processUnknownPkt (msg);
                     break;
                     
+                    case bfclient_msg.M_LINK_DOWN:
+                        processLinkDown (msg);
+                    break;
+                    
+                    case bfclient_msg.M_LINK_UP:
+                        processLinkUp (msg);
+                    break;
+                    
                     default:
                         bfclient.logErr ("Unknown msg received: " + type);
                         System.exit (0);
@@ -123,11 +131,15 @@ public class bfclient_proc implements Runnable {
         InetAddress hostAddr = repo.getLocalAddr ();
         int hostPort = repo.getPort ();
         
-        int localIfCnt = repo.getLocalIntfCnt ();
+        int localIfCnt = repo.getAllLocalIntfCnt ();
         
         for (int i=0; i<localIfCnt; ++i) {
             bfclient.logInfo ("processUpdateTimeout - 1");
             bfclient_rentry lent = repo.getLocalIntfEntry (i);
+            
+            if (lent.getOn () == false)
+                continue;
+            
             byte[] rtb = repo.getFlatRoutingTable (lent);
             
             bfclient_packet pkt = new bfclient_packet ();
@@ -250,8 +262,15 @@ public class bfclient_proc implements Runnable {
         // prepare nexthop & linkcost
         bfclient_rentry nextHop = bfclient_rentry.rentryFactory (srcAddr, srcPort);
         bfclient_rentry srcEntry = repo.searchRoutingTable (srcAddr, srcPort);
-        float linkCost = srcEntry.getCost ();
         
+        // if the link is off, just ignore the link
+        if (srcEntry == null || srcEntry.getOn () == false) {
+            bfclient.logInfo ("Receiving an UPDATE from DOWN LINK");
+            return;
+        }
+        
+        float linkCost = srcEntry.getCost ();
+    
         //  for every entry in the packet
         //  if this entry is me 
         //      just ignore that.
@@ -394,6 +413,40 @@ public class bfclient_proc implements Runnable {
             
                 bfclient.printMsg ("Hop: " + add + ":" + port);
             }
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+    }
+    
+    void processLinkDown (bfclient_msg msg) {
+        try {
+            bfclient.logInfo ("processLinkDown");
+            
+            String destAddrStr = msg.dequeue ();
+            String destPortStr = msg.dequeue ();
+            InetAddress addr = InetAddress.getByName (destAddrStr);
+            int port = Integer.parseInt (destPortStr);
+        
+            bfclient_repo repo = bfclient_repo.getRepo ();
+            repo.diableLocalLink (addr, port);
+            
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+    }
+    
+    void processLinkUp (bfclient_msg msg) {
+        try {
+            bfclient.logInfo ("processLinkDown");
+            
+            String destAddrStr = msg.dequeue ();
+            String destPortStr = msg.dequeue ();
+            InetAddress addr = InetAddress.getByName (destAddrStr);
+            int port = Integer.parseInt (destPortStr);
+        
+            bfclient_repo repo = bfclient_repo.getRepo ();
+            repo.enableLocalLink (addr, port);
+            
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }

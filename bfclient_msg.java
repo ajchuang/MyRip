@@ -22,6 +22,9 @@ public class bfclient_msg {
     public final static int M_DO_FORWARD        = 31;
     public final static int M_UPDATE_TIMER_TO   = 32;
     
+    public final static int M_LINK_DOWN         = 40;
+    public final static int M_LINK_UP           = 41;
+    
     
     int m_type;
     LinkedList<String> m_data;

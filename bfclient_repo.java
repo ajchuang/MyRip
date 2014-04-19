@@ -12,8 +12,8 @@ public class bfclient_repo {
     String m_configFileName;
     
     // The routing table
-    Vector<bfclient_rentry> m_rtable;
-    Vector<bfclient_rentry> m_localEntryIdx;
+    ArrayList<bfclient_rentry> m_rtable;
+    ArrayList<bfclient_rentry> m_localEntryIdx;
     
     // synchronous lock
     Object m_lock;
@@ -52,8 +52,8 @@ public class bfclient_repo {
     
     private bfclient_repo (String fname) {
         m_configFileName = fname;
-        m_rtable = new Vector<bfclient_rentry> ();
-        m_localEntryIdx = new Vector<bfclient_rentry> ();
+        m_rtable = new ArrayList<bfclient_rentry> ();
+        m_localEntryIdx = new ArrayList<bfclient_rentry> ();
         m_lock = new Object (); 
     }
     
@@ -148,7 +148,9 @@ public class bfclient_repo {
         
         synchronized (m_lock) {
             for (bfclient_rentry ent:m_rtable) {
-                bfclient.printMsg (ent.toString ());
+                if (ent.getOn () == true) {
+                    bfclient.printMsg (ent.toString ());
+                }
             }
         }
     }
@@ -168,7 +170,8 @@ public class bfclient_repo {
         
         synchronized (m_lock) {
             for (bfclient_rentry ent:m_rtable) {
-                if (ent.compare (addr, port) == true) {
+                if (ent.getOn () == true && 
+                    ent.compare (addr, port) == true) {
                     ret = ent;
                 }
             }
@@ -177,17 +180,91 @@ public class bfclient_repo {
         return ret;
     }
     
+    public final boolean diableLocalLink (InetAddress addr, int port) {
+        
+        bfclient_rentry localLink = searchRoutingTable (addr, port);
+        int idx = getLocalIntfIdx (addr, port);
+        
+        if (localLink == null || localLink.isLocalIf () == false) {
+            bfclient.logErr ("Local link not found: " + addr + ":" + port);
+            return false;
+        }
+        
+        synchronized (m_lock) {
+            localLink.setOn (false);
+            
+            ListIterator<bfclient_rentry> lstItr =  m_rtable.listIterator ();
+            
+            // remove all entries starting from locallink
+            while (lstItr.hasNext () == true) {
+                
+                bfclient_rentry ent = lstItr.next ();
+                
+                if (ent.isLocalIf () == false && 
+                    ent.getIntfIdx () == idx) {
+                    
+                    // remove the entry
+                    lstItr.remove ();
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    public final boolean enableLocalLink (InetAddress addr, int port) {
+        bfclient_rentry localLink = searchRoutingTable (addr, port);
+        int idx = getLocalIntfIdx (addr, port);
+        
+        synchronized (m_lock) {
+            for (bfclient_rentry ent: m_localEntryIdx) {
+                if (ent.getAddr ().equals (addr) && ent.getPort () == port)
+                    ent.setOn (true);
+            }
+        }
+        
+        return true;
+    }
+    
     // get local i/f count
-    public int getLocalIntfCnt () {
-        return m_localEntryIdx.size ();
+    public int getAllLocalIntfCnt () {
+        
+        int cnt = 0;
+        
+        synchronized (m_lock) {
+            cnt = m_localEntryIdx.size ();
+        }
+        
+        return cnt;
     }
     
     // get local i/f entry
     public bfclient_rentry getLocalIntfEntry (int idx) {
+        
+        bfclient_rentry ent = null;
+        
+        synchronized (m_lock) {
         if (idx < m_localEntryIdx.size ())
-            return m_localEntryIdx.elementAt (idx);
+            ent = m_localEntryIdx.get (idx);
         else
-            return null;
+            ent = null;
+        }
+        
+        return ent;
+    }
+    
+    public int getLocalIntfIdx (InetAddress addr, int port) {
+        
+        int cnt = 0;
+        synchronized (m_lock) {
+            for (bfclient_rentry ent:m_localEntryIdx) {
+                if (ent.getAddr ().equals (addr) && ent.getPort () == port)
+                    break;
+                cnt++;
+            }
+        }
+        
+        return cnt;
     }
     
     // for given local entry, do 
