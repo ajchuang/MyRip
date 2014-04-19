@@ -141,7 +141,19 @@ public class bfclient_rentry {
     
     @Override
     public String toString () {
-        return m_addr.getHostAddress () + ":" + m_port + "\t" + m_linkCost + "\t" + m_intfIdx;
+        
+        String nextHop;
+        
+        if (m_localIntf == true) {
+            nextHop = "DirectLink\t";
+        } else {
+            nextHop = m_nextHop.getAddr ().getHostAddress() + ":" + m_nextHop.getPort ();
+        }
+        
+        return m_addr.getHostAddress () + ":" + m_port + "\t" + 
+               m_linkCost + "\t" + 
+               nextHop    + "\t" +
+               m_intfIdx;
     }
     
     public boolean compare (InetAddress addr, int port) {

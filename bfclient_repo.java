@@ -144,7 +144,7 @@ public class bfclient_repo {
     // bad method - just to simplify
     public void showRouteTable () {
         bfclient.printMsg ("Current Routing Table: ");
-        bfclient.printMsg ("Destination\t\tCost\tInterface");
+        bfclient.printMsg ("Destination\t\tCost\tNexthop\t\t\tInterface");
         
         synchronized (m_lock) {
             for (bfclient_rentry ent:m_rtable) {
