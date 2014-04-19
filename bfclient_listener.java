@@ -68,17 +68,44 @@ public class bfclient_listener implements Runnable {
         bfclient.logInfo ("Rcvd destination port: " + Integer.toString (inc.getDstPort ()));
         bfclient.logInfo ("Rcvd packet type: " + Byte.toString (inc.getType ()));
         
+        // if traceroute packet, need a stamp
+        if (inc.getType () == bfclient_packet.M_TROUTE_REQ) {
+            
+            byte[] myAddrArray = myAddr.getAddress ();
+            byte[] myPortArray = ByteBuffer.allocate(4).putInt (repo.getPort()).array ();
+            byte[] userData = inc.getUserData ();
+            int uDataLen;
+            
+            if (userData == null)
+                uDataLen = 0;
+            else
+                uDataLen = userData.length;
+            
+            
+            byte[] myStamp = new byte[myAddrArray.length + myPortArray.length];
+            System.arraycopy (myAddrArray, 0, myStamp, 0, 4);
+            System.arraycopy (myPortArray, 0, myStamp, 4, 4);
+                
+            byte[] newUserData = new byte[uDataLen + myStamp.length];
+            
+            if (userData != null)
+                System.arraycopy (userData, 0, newUserData, 0, uDataLen);
+                
+            System.arraycopy (myStamp,  0, newUserData, uDataLen, 8);
+                
+            inc.setUserData (newUserData);
+        }
+        
         if (myAddr.equals (inc.getDstAddr ()) && repo.getPort () == inc.getDstPort ()) {
             
             // I am the destination
             if (inc.getType () == bfclient_packet.M_PING_REQ) {
                 bfclient.logInfo ("Receiving ping request");
-                bfclient_msg msg = new bfclient_msg ();
-                msg.enqueue (bfclient_msg.M_PING_RSP);
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_PING_REQ);
                 msg.enqueue (inc.getSrcAddr ().getHostAddress ());
                 msg.enqueue (Integer.toString (inc.getSrcPort ()));
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
-            } if (inc.getType () == bfclient_packet.M_PING_RSP) {
+            } else if (inc.getType () == bfclient_packet.M_PING_RSP) {
                 bfclient.logInfo ("Receiving ping response");
                 bfclient.printMsg (
                     "> ping response from " + 
@@ -86,8 +113,17 @@ public class bfclient_listener implements Runnable {
                     Integer.toString (inc.getSrcPort ()));
             } else if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE) {
                 bfclient.logInfo ("Receiving Router Update");
-                bfclient_msg msg = new bfclient_msg ();
-                msg.enqueue (bfclient_msg.M_REMOTE_VEC);
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_REMOTE_VEC);
+                msg.setUserData ((Object)inc);
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_TROUTE_REQ) {
+                bfclient.logInfo ("Receiving trace route req");
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_TROUTE_REQ);
+                msg.setUserData ((Object)inc);
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_TROUTE_RSP_OK) {
+                bfclient.logInfo ("Receiving trace route rsp ok");
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_TROUTE_RSP);
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_HOST_UNKNOWN_PACKET) {
@@ -96,11 +132,10 @@ public class bfclient_listener implements Runnable {
                 System.exit (0);
             } else {
                 // debuggin - stop now
-                bfclient.logInfo ("Receiving unknown packet");
+                bfclient.logInfo ("Receiving unknown packet: " + inc.getType ());
                 System.exit (0);
                 // unknown type - drop and return an error msg
-                bfclient_msg msg = new bfclient_msg ();
-                msg.enqueue (bfclient_msg.M_UNKNOWN_PKT);
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_UNKNOWN_PKT);
                 msg.enqueue (inc.getSrcAddr ().getHostAddress ());
                 msg.enqueue (Integer.toString (inc.getSrcPort ()));
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
@@ -108,21 +143,9 @@ public class bfclient_listener implements Runnable {
         } else {
             bfclient.logInfo ("packet to forward");
             
-            InetAddress dstAddr = inc.getDstAddr ();
-            int dstPort = inc.getDstPort ();
-            
-            bfclient_rentry ent = repo.searchRoutingTable (dstAddr, dstPort);
-            
-            if (ent != null) {
-                // forward the packet to next address
-                if (ent.isLocalIf () == true) {
-                } else {
-                }
-                
-            } else {
-                // just drop it - we should say "destination unreachable"
-            }
-            
+            bfclient_msg msg = new bfclient_msg (bfclient_msg.M_DO_FORWARD);
+            msg.setUserData (inc);
+            bfclient_proc.getMainProc ().enqueueMsg (msg);
         }
     }
 }

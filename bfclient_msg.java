@@ -4,20 +4,38 @@ import java.nio.charset.*;
 public class bfclient_msg {
     
     // msg type
-    public final static String M_PING_REQ       = "M_PING_REQ";
-    public final static String M_PING_RSP       = "M_PING_RSP";
-    public final static String M_UPDATE_TO      = "M_UPDATE_TO";
-    public final static String M_UNKNOWN_PKT    = "M_UNKNOWN_PKT";
-    public final static String M_REMOTE_VEC     = "M_REMOTE_VEC";
-    public final static String M_FORWARD        = "M_FORWARD";
+    public final static int M_SEND_PING_REQ     = 1;
+    public final static int M_RCV_PING_REQ      = 2;
     
+    public final static int M_SEND_PING_RSP     = 3;
+    public final static int M_RCV_PING_RSP      = 4;
+    
+    public final static int M_SEND_TROUTE_REQ   = 11;
+    public final static int M_RCV_TROUTE_REQ    = 12;
+    
+    public final static int M_SEND_TROUTE_RSP   = 13;
+    public final static int M_RCV_TROUTE_RSP    = 14;
+    
+    public final static int M_RCV_REMOTE_VEC    = 20;
 
+    public final static int M_RCV_UNKNOWN_PKT   = 30;
+    public final static int M_DO_FORWARD        = 31;
+    public final static int M_UPDATE_TIMER_TO   = 32;
+    
+    
+    int m_type;
     LinkedList<String> m_data;
     byte[] m_binData;
     Object m_userData;
 
-    public bfclient_msg () {
+    public bfclient_msg (int type) {
+        
+        m_type = type;
         m_data = new LinkedList<String> ();
+    }
+    
+    public int getType () {
+        return m_type;
     }
     
     public void enqueue (String s) {
@@ -44,32 +62,7 @@ public class bfclient_msg {
         return m_userData;
     }
     
-    /*
-    public byte[] flatten () {
-        
-        String outString = new String ();
-        
-        for (String s: m_data) {
-            outString += (s + '\n');
-        }
-        
-        byte[] cmd = outString.getBytes (Charset.forName ("UTF-8"));
-        
-        if (m_binData != null) {
-            byte[] out = new byte[cmd.length + m_binData.length];
-            System.arraycopy (cmd, 0, out, 0, cmd.length);
-            System.arraycopy (m_binData, 0, out, out.length, m_binData.length);
-            return out;
-        } else {
-            return cmd;
-        }
-    }
-    */
-    
     public void showHeader () {
-        if (m_data.size () == 0)
-            bfclient.logInfo ("[MSG HEADER] empty msg");
-        else
-            bfclient.logInfo ("[MSG HEADER] " + m_data.element ());
+        bfclient.logInfo ("[MSG TYPE] " + m_type);
     }
 } 

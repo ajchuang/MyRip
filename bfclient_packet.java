@@ -139,6 +139,45 @@ public class bfclient_packet {
         return m_userData;
     }
     
+    public byte[] pack () {
+        byte[] destRawAddr = m_dstAddr.getAddress ();
+        byte[] destRawPort = ByteBuffer.allocate(4).putInt(m_dstPort).array ();
+        byte[] srcRawAddr  = m_srcAddr.getAddress ();
+        byte[] srcRawPort  = ByteBuffer.allocate(4).putInt(m_srcPort).array ();
+        byte[] control     = {m_type, (byte)0x00, (byte)0x00, m_pktId};
+        
+        byte[] rawDataLen;
+        byte[] rawData;
+        int packetTotalLen = M_PKT_HEADER_SIZE;
+        
+        if (m_userData != null) {
+            rawData     = m_userData;
+            rawDataLen  = ByteBuffer.allocate(4).putInt(m_userData.length).array ();
+            packetTotalLen = M_PKT_HEADER_SIZE + m_userData.length;
+        } else {
+            rawData     = null;
+            rawDataLen  = ByteBuffer.allocate(4).putInt(0x00000000).array ();
+            packetTotalLen = M_PKT_HEADER_SIZE;
+        }
+        
+        if (rawData != null)
+            bfclient.logInfo ("rawData: " + rawData.length);
+        
+        byte[] packet = new byte[packetTotalLen];
+        
+        System.arraycopy (destRawAddr, 0, packet,  0, destRawAddr.length);
+        System.arraycopy (destRawPort, 0, packet,  4, destRawPort.length);
+        System.arraycopy (srcRawAddr,  0, packet,  8, srcRawAddr.length);
+        System.arraycopy (srcRawPort,  0, packet, 12, srcRawPort.length);
+        System.arraycopy (control,     0, packet, 16, control.length);
+        System.arraycopy (rawDataLen,  0, packet, 20, rawDataLen.length);
+        
+        if (rawData != null)
+            System.arraycopy (rawData,  0, packet, 24, rawData.length);
+        
+        return packet;
+    }
+    
     @Override
     public String toString () {
         return new String ("PID: " + m_pktId + " TYPE: " + m_type);

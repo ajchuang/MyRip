@@ -171,14 +171,27 @@ public class bfclient {
             return;
         }
         
-        bfclient_msg ping = new bfclient_msg ();
-        ping.enqueue (bfclient_msg.M_PING_REQ);
+        bfclient_msg ping = new bfclient_msg (bfclient_msg.M_SEND_PING_REQ);
         ping.enqueue (toks[1]);
         ping.enqueue (toks[2]);
         bfclient_proc.getMainProc ().enqueueMsg (ping);
     }
     
+    //  @lfred:
+    //      Troute is used trace the routing path 
+    //      input: dest_addr, dest_port
     void processTroute (String[] toks) {
+        
+        if (toks.length != 3) {
+            printMsg ("Command format error.");
+            printMsg ("[Usage] TRACEROUTE [ip] [port]");
+            return;
+        }
+        
+        bfclient_msg ping = new bfclient_msg (bfclient_msg.M_SEND_TROUTE_REQ);
+        ping.enqueue (toks[1]);
+        ping.enqueue (toks[2]);
+        bfclient_proc.getMainProc ().enqueueMsg (ping);
     }
     
     //  @lfred: 

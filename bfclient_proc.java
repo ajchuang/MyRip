@@ -31,7 +31,12 @@ public class bfclient_proc implements Runnable {
     }
     
     public void enqueueMsg (bfclient_msg m) {
+        
         try {
+            // debug code
+            if (m.getType () == 0)
+                throw new Exception ();
+                
             m_queue.put (m);
         } catch (Exception e) {
             bfclient.logExp (e, true);
@@ -47,8 +52,7 @@ public class bfclient_proc implements Runnable {
         m_updateTimer.scheduleAtFixedRate (
             new TimerTask () {
                 public void run () {
-                    bfclient_msg msg = new bfclient_msg ();
-                    msg.enqueue (bfclient_msg.M_UPDATE_TO);
+                    bfclient_msg msg = new bfclient_msg (bfclient_msg.M_UPDATE_TIMER_TO);
                     bfclient_proc.getMainProc ().enqueueMsg (msg);
                 }
             }, 1000, repo.getTimeout () * 1000);
@@ -59,22 +63,51 @@ public class bfclient_proc implements Runnable {
                 bfclient_msg msg = m_queue.take ();
                 msg.showHeader ();
                 
-                String type = msg.dequeue ();
-                
-                if (type.equals (bfclient_msg.M_PING_REQ)) {
-                    processPing (msg);
-                } else if (type.equals (bfclient_msg.M_PING_RSP)) {
-                    processPingRsp (msg);
-                } else if (type.equals (bfclient_msg.M_UPDATE_TO)) {
-                    processUpdateTimeout (msg);
-                } else if (type.equals (bfclient_msg.M_UNKNOWN_PKT)) {
-                    processUnknownPkt (msg);
-                } else if (type.equals (bfclient_msg.M_REMOTE_VEC)) {
-                    processRemoteVec (msg);
-                } else {
-                    bfclient.logErr ("Unknown msg received: " + type);
+                //String type = msg.dequeue ();
+                int type = msg.getType ();
+                switch (type) {
+                    
+                    case bfclient_msg.M_DO_FORWARD:
+                        processForward (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_REMOTE_VEC:
+                        processRemoteVec (msg);
+                    break;
+                    
+                    case bfclient_msg.M_UPDATE_TIMER_TO:
+                        processUpdateTimeout (msg);
+                    break;
+                    
+                    case bfclient_msg.M_SEND_PING_REQ:
+                        processPing (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_PING_REQ:
+                        processPingRsp (msg);
+                    break;
+                    
+                    case bfclient_msg.M_SEND_TROUTE_REQ:
+                        processTroute (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_TROUTE_REQ:
+                        processRxTrouteRsp (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_TROUTE_RSP:
+                        processTrouteRsp (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_UNKNOWN_PKT:
+                        processUnknownPkt (msg);
+                    break;
+                    
+                    default:
+                        bfclient.logErr ("Unknown msg received: " + type);
+                        System.exit (0);
+                    break;
                 }
-                
             } catch (Exception e) {
                 bfclient.logExp (e, false);
             }
@@ -96,12 +129,16 @@ public class bfclient_proc implements Runnable {
             bfclient.logInfo ("processUpdateTimeout - 1");
             bfclient_rentry lent = repo.getLocalIntfEntry (i);
             byte[] rtb = repo.getFlatRoutingTable (lent);
-            byte[] pkt = 
-                packPacket (
-                    rtb, lent.getAddr (), lent.getPort (), repo.getLocalAddr (), repo.getPort (), 
-                    bfclient_packet.M_ROUTER_UPDATE, (byte)0x01, (byte)0x01);
             
-            sendPacket (pkt, lent);
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr (lent.getAddr ());
+            pkt.setDstPort (lent.getPort ());
+            pkt.setSrcAddr (repo.getLocalAddr ());
+            pkt.setSrcPort (repo.getPort ());
+            pkt.setType (bfclient_packet.M_ROUTER_UPDATE);
+            pkt.setUserData (rtb);
+            
+            sendPacket (pkt.pack (), lent);
         }
     }
     
@@ -118,12 +155,16 @@ public class bfclient_proc implements Runnable {
             // find next step
             InetAddress addr = InetAddress.getByName (destAddrStr);
             int port = Integer.parseInt (destPortStr);
-            byte[] rawPacket = 
-                packPacket (
-                    null, addr, port, hostAddr, hostPort, 
-                    bfclient_packet.M_PING_REQ, (byte)0x01, (byte)0x01);
+            
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr (addr);
+            pkt.setDstPort (port);
+            pkt.setSrcAddr (hostAddr);
+            pkt.setSrcPort (hostPort);
+            pkt.setType (bfclient_packet.M_PING_REQ);
+            
             bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
-            sendPacket (rawPacket, nextHop);
+            sendPacket (pkt.pack (), nextHop);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
@@ -142,12 +183,16 @@ public class bfclient_proc implements Runnable {
             // find next step
             InetAddress addr = InetAddress.getByName (destAddrStr);
             int port = Integer.parseInt (destPortStr);
-            byte[] rawPacket = 
-                packPacket (
-                    null, addr, port, hostAddr, hostPort, 
-                    bfclient_packet.M_PING_RSP, (byte)0x01, (byte)0x01);
+            
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr (addr);
+            pkt.setDstPort (port);
+            pkt.setSrcAddr (hostAddr);
+            pkt.setSrcPort (hostPort);
+            pkt.setType    (bfclient_packet.M_PING_RSP); 
+            
             bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
-            sendPacket (rawPacket, nextHop);
+            sendPacket (pkt.pack (), nextHop);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
@@ -167,12 +212,16 @@ public class bfclient_proc implements Runnable {
             // find next step
             InetAddress addr = InetAddress.getByName (destAddrStr);
             int port = Integer.parseInt (destPortStr);
-            byte[] rawPacket = 
-                packPacket (
-                    null, addr, port, hostAddr, hostPort, 
-                    bfclient_packet.M_HOST_UNKNOWN_PACKET, (byte)0x01, (byte)0x01);
+            
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr (addr);
+            pkt.setDstPort (port);
+            pkt.setSrcAddr (hostAddr);
+            pkt.setSrcPort (hostPort);
+            pkt.setType    (bfclient_packet.M_HOST_UNKNOWN_PACKET);
+            
             bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
-            sendPacket (rawPacket, nextHop);
+            sendPacket (pkt.pack (), nextHop);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
@@ -258,65 +307,96 @@ public class bfclient_proc implements Runnable {
                 repo.addRoutingEntry (newEnt);
             }
         }
-        
-        
-        
     }
     
-    void createCntlPacket (InetAddress dstAddr, int dstPort, byte type) {
+    void processForward (bfclient_msg msg) {
+        
+        bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        
+        InetAddress dstAddr = pkt.getDstAddr ();
+        int dstPort = pkt.getDstPort ();
+        bfclient_rentry rent = repo.searchRoutingTable (dstAddr, dstPort);
+        sendPacket (pkt.pack (), rent);
+    }
+    
+    void processTroute (bfclient_msg msg) {
+        
+        try {
+            bfclient_repo repo = bfclient_repo.getRepo ();
+            
+            String destAddrStr = msg.dequeue ();
+            String destPortStr = msg.dequeue ();
+            InetAddress hostAddr = repo.getLocalAddr ();
+            int hostPort = repo.getPort ();
+        
+            // find next step
+            InetAddress addr = InetAddress.getByName (destAddrStr);
+            int port = Integer.parseInt (destPortStr);
+            
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr (addr);
+            pkt.setDstPort (port);
+            pkt.setSrcAddr (hostAddr);
+            pkt.setSrcPort (hostPort);
+            pkt.setType    (bfclient_packet.M_TROUTE_REQ); 
+            
+            bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
+            sendPacket (pkt.pack (), nextHop);
+            
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+    }
+    
+    void processRxTrouteRsp (bfclient_msg msg) {
+        
+        bfclient.logInfo ("processRxTrouteRsp");
         
         bfclient_repo repo = bfclient_repo.getRepo ();
+        bfclient_packet inc = (bfclient_packet)msg.getUserData (); 
+        byte[] uData = inc.getUserData ();
+        
         InetAddress myAddr = repo.getLocalAddr ();
-        repo.getPort ();
+        int myPort = repo.getPort ();
+        InetAddress dstAddr = inc.getSrcAddr ();
+        int dstPort = inc.getSrcPort ();
+        
+        bfclient_packet pkt = new bfclient_packet ();
+        pkt.setDstAddr  (dstAddr);
+        pkt.setDstPort  (dstPort);
+        pkt.setSrcAddr  (myAddr);
+        pkt.setSrcPort  (myPort);
+        pkt.setUserData (uData);
+        pkt.setType     (bfclient_packet.M_TROUTE_RSP_OK);
+            
+        bfclient_rentry nextHop = repo.searchRoutingTable (dstAddr, dstPort);
+        sendPacket (pkt.pack (), nextHop);
     }
     
-    // pack the msg into a valid packet
-    byte[] packPacket (
-        byte[] userData, 
-        InetAddress destAddr, 
-        int destPort, 
-        InetAddress srcAddr, 
-        int srcPort,
-        byte type,
-        byte total_parts,
-        byte current_part) {
+    void processTrouteRsp (bfclient_msg msg) {
         
-        byte[] destRawAddr = destAddr.getAddress ();
-        byte[] destRawPort = ByteBuffer.allocate(4).putInt(destPort).array ();
-        byte[] srcRawAddr  = srcAddr.getAddress ();
-        byte[] srcRawPort  = ByteBuffer.allocate(4).putInt(srcPort).array ();
-        byte[] control     = {type, total_parts, current_part, 0x00};
+        try {
+            bfclient.logInfo ("processTrouteRsp");
+            bfclient_packet inc = (bfclient_packet)msg.getUserData (); 
+            byte[] uData = inc.getUserData ();
         
-        byte[] rawDataLen;
-        byte[] rawData;
-        int packetTotalLen = 24;
-        
-        if (userData != null) {
-            rawData     = userData;
-            rawDataLen  = ByteBuffer.allocate(4).putInt(userData.length).array ();
-            packetTotalLen = 24 + rawData.length;
-        } else {
-            rawData     = null;
-            rawDataLen  = ByteBuffer.allocate(4).putInt(0x00000000).array ();
-            packetTotalLen = 24;
+            int nHop = uData.length / 8;
+            byte[] hopData = new byte[8];
+            byte[] hopAddr = new byte[4];
+            byte[] hopPort = new byte[4];
+            
+            for (int i=0; i<nHop; ++i) {
+                System.arraycopy (uData, i*8,     hopAddr, 0, 4);
+                System.arraycopy (uData, i*8 + 4, hopPort, 0, 4);
+                InetAddress add = InetAddress.getByAddress (hopAddr);
+                int port = ByteBuffer.wrap (hopPort).getInt ();
+            
+                bfclient.printMsg ("Hop: " + add + ":" + port);
+            }
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
         }
-        
-        if (rawData != null)
-            bfclient.logInfo ("rawData: " + rawData.length);
-        
-        byte[] packet = new byte[packetTotalLen];
-        
-        System.arraycopy (destRawAddr, 0, packet,  0, destRawAddr.length);
-        System.arraycopy (destRawPort, 0, packet,  4, destRawPort.length);
-        System.arraycopy (srcRawAddr,  0, packet,  8, srcRawAddr.length);
-        System.arraycopy (srcRawPort,  0, packet, 12, srcRawPort.length);
-        System.arraycopy (control,     0, packet, 16, control.length);
-        System.arraycopy (rawDataLen,  0, packet, 20, rawDataLen.length);
-        
-        if (rawData != null)
-            System.arraycopy (rawData,  0, packet, 24, rawData.length);
-        
-        return packet;
     }
     
     // msg is the packet to send, rentry is the matching routing table entry
