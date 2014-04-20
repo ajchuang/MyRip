@@ -111,6 +111,14 @@ public class bfclient_proc implements Runnable {
                         processLinkUp (msg);
                     break;
                     
+                    case bfclient_msg.M_RCV_LINK_DOWN:
+                        processRcvLinkDown (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_LINK_UP:
+                        processRcvLinkUp (msg);
+                    break;
+                    
                     default:
                         bfclient.logErr ("Unknown msg received: " + type);
                         System.exit (0);
@@ -421,13 +429,25 @@ public class bfclient_proc implements Runnable {
     void processLinkDown (bfclient_msg msg) {
         try {
             bfclient.logInfo ("processLinkDown");
+            bfclient_repo repo = bfclient_repo.getRepo ();
             
             String destAddrStr = msg.dequeue ();
             String destPortStr = msg.dequeue ();
             InetAddress addr = InetAddress.getByName (destAddrStr);
             int port = Integer.parseInt (destPortStr);
+            InetAddress myAddr = repo.getLocalAddr ();
+            int myPort = repo.getPort ();
+            
+            // send link-down packet
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr  (addr);
+            pkt.setDstPort  (port);
+            pkt.setSrcAddr  (myAddr);
+            pkt.setSrcPort  (myPort);
+            pkt.setType     (bfclient_packet.M_LINK_DOWN);
+            sendPacket (pkt.pack (), repo.searchAllRoutingTable (addr, port));
         
-            bfclient_repo repo = bfclient_repo.getRepo ();
+            // locally stopped
             repo.diableLocalLink (addr, port);
             
         } catch (Exception e) {
@@ -438,18 +458,37 @@ public class bfclient_proc implements Runnable {
     void processLinkUp (bfclient_msg msg) {
         try {
             bfclient.logInfo ("processLinkDown");
+            bfclient_repo repo = bfclient_repo.getRepo ();
             
             String destAddrStr = msg.dequeue ();
             String destPortStr = msg.dequeue ();
             InetAddress addr = InetAddress.getByName (destAddrStr);
             int port = Integer.parseInt (destPortStr);
-        
-            bfclient_repo repo = bfclient_repo.getRepo ();
+            InetAddress myAddr = repo.getLocalAddr ();
+            int myPort = repo.getPort ();
+            
+            // send link-down packet
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr  (addr);
+            pkt.setDstPort  (port);
+            pkt.setSrcAddr  (myAddr);
+            pkt.setSrcPort  (myPort);
+            pkt.setType     (bfclient_packet.M_LINK_UP);
+            sendPacket (pkt.pack (), repo.searchAllRoutingTable (addr, port));
+            
             repo.enableLocalLink (addr, port);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
+    }
+    
+    void processRcvLinkDown (bfclient_msg msg) {
+        bfclient.logInfo ("processRcvLinkDown");
+    }
+    
+    void processRcvLinkUp (bfclient_msg msg) {
+        bfclient.logInfo ("processRcvLinkUp");
     }
     
     // msg is the packet to send, rentry is the matching routing table entry

@@ -20,6 +20,9 @@ public class bfclient_packet {
     // user packet
     public final static byte M_USER_DATA = 0x20;
     
+    public final static byte M_LINK_DOWN    = 0x30;
+    public final static byte M_LINK_UP      = 0x31;
+    
     // error msg
     public final static byte M_HOST_NOT_REACHABLE  = (byte)0xf0;
     public final static byte M_HOST_UNKNOWN_PACKET = (byte)0xf1;

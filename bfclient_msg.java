@@ -23,7 +23,9 @@ public class bfclient_msg {
     public final static int M_UPDATE_TIMER_TO   = 32;
     
     public final static int M_LINK_DOWN         = 40;
-    public final static int M_LINK_UP           = 41;
+    public final static int M_RCV_LINK_DOWN     = 41;
+    public final static int M_LINK_UP           = 42;
+    public final static int M_RCV_LINK_UP       = 43;
     
     
     int m_type;

@@ -180,6 +180,21 @@ public class bfclient_repo {
         return ret;
     }
     
+    public final bfclient_rentry searchAllRoutingTable (InetAddress addr, int port) {
+        
+        bfclient_rentry ret = null;
+        
+        synchronized (m_lock) {
+            for (bfclient_rentry ent:m_rtable) {
+                if (ent.compare (addr, port) == true) {
+                    ret = ent;
+                }
+            }
+        }
+        
+        return ret;
+    }
+    
     public final boolean diableLocalLink (InetAddress addr, int port) {
         
         bfclient_rentry localLink = searchRoutingTable (addr, port);
