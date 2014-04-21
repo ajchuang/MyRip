@@ -287,15 +287,31 @@ public class bfclient {
     //      this function prints the log file we are running.
     //      toks[] are not used actually.
     void processLog (String[] toks) {
+        
+        boolean isFilter = false;
+        String  filter = null;
+        
+        if (toks.length >= 2) {
+            filter = toks[1].toUpperCase (); 
+            isFilter = true;
+        }
+        
         try {
-            
             BufferedReader reader = new BufferedReader(new FileReader (M_LOG_FILE));
             String line;
             int toss = 0;
             
             while ((line = reader.readLine ()) != null) {
-                if (toss % 2 == 1)
-                    System.out.println (line);
+                if (toss % 2 == 1) {
+                    if (isFilter == false)
+                        System.out.println (line);
+                    else if (isFilter == true) {
+                        String log = line.toUpperCase ();
+                        
+                        if (log.indexOf (filter) != -1)
+                            System.out.println (line);
+                    }
+                }
                     
                 toss++;
             }
@@ -303,8 +319,6 @@ public class bfclient {
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
-        
-        printMsg ("");
     }
     
     String localhostTranslate (String addr) {

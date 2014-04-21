@@ -287,6 +287,7 @@ public class bfclient_proc implements Runnable {
         //      if found,
         //          if it comes from the next hop -
         //              update accordingly
+        //          else if I am the nexthop - do fucking care - dont update me
         //          else
         //              compare the current cost and remote cost + link cost
         //                  if the new link is smaller
@@ -304,6 +305,7 @@ public class bfclient_proc implements Runnable {
                 incTable, i*bfclient_rentry.M_DEFLATE_SIZE, curEntry, 0, 
                 bfclient_rentry.M_DEFLATE_SIZE);
             bfclient_rentry newEnt = bfclient_rentry.rentryFactory (curEntry);
+            bfclient.logErr ("new entry: " + newEnt.toString ());
             
             if (newEnt.getAddr ().equals (repo.getLocalAddr ()) && 
                 newEnt.getPort () == repo.getPort ()) {
@@ -313,21 +315,37 @@ public class bfclient_proc implements Runnable {
             
             float newCost = linkCost + newEnt.getCost ();
             
-            // search routing table
+            // search all routing tables including down links
             bfclient_rentry rEnt = 
-                repo.searchRoutingTable (newEnt.getAddr (), newEnt.getPort ());
+                repo.searchAllRoutingTable (newEnt.getAddr (), newEnt.getPort ());
             
             if (rEnt != null) {
-                // TODO 
-                if (newCost < linkCost) {
-                    // put it into the rtable
-                    newEnt.setCost (newCost);
-                    newEnt.setNextHop (nextHop);
-                    newEnt.setIntfIdx (srcEntry.getIntfIdx ());
-                    newEnt.setOn (true);
-                    repo.addRoutingEntry (newEnt);
-                } else {
-                    // drop it
+                if (rEnt.getOn () &&
+                    rEnt.getNextHop () != null && 
+                    rEnt.getNextHop ().getAddr ().equals (srcAddr) && 
+                    rEnt.getNextHop ().getPort () == srcPort) {
+                        
+                    // only update existing ON entry
+                    rEnt.setCost (newCost);
+                    rEnt.setNextHop (nextHop);
+                    rEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                    rEnt.setOn (true);
+                } else if (newEnt.getNextHop () != null &&
+                           newEnt.getNextHop ().getAddr ().equals (repo.getLocalAddr ()) && 
+                           newEnt.getNextHop ().getPort () == repo.getPort ()) {
+                    // ignore if the new entry's next hop is myself
+                    bfclient.logErr ("Hit split horizon");
+                } else { 
+                    // if not the next hop
+                    if (rEnt.getOn () && newCost < linkCost) {
+                        // Update the rtable
+                        rEnt.setCost (newCost);
+                        rEnt.setNextHop (nextHop);
+                        rEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                        rEnt.setOn (true);
+                    } else {
+                        // drop it (bad link or off link)
+                    }
                 }
             } else {
                  // just add to the rtable

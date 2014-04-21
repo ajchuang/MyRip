@@ -147,7 +147,10 @@ public class bfclient_rentry {
         if (m_localIntf == true) {
             nextHop = "DirectLink\t";
         } else {
-            nextHop = m_nextHop.getAddr ().getHostAddress() + ":" + m_nextHop.getPort ();
+            if (m_nextHop != null)
+                nextHop = m_nextHop.getAddr ().getHostAddress() + ":" + m_nextHop.getPort ();
+            else
+                nextHop = "Unknown next hop";
         }
         
         return m_addr.getHostAddress () + ":" + m_port + "\t" + 
@@ -209,10 +212,16 @@ public class bfclient_rentry {
             m_addr = InetAddress.getByAddress (addr);
             m_port = ByteBuffer.wrap (port).getInt ();
             m_linkCost = ByteBuffer.wrap (cost).getFloat ();
+            
+            int nextPortNum = ByteBuffer.wrap (nextPort).getInt ();
         
-            bfclient_rentry nextHop = new bfclient_rentry ();
-            nextHop.setAddr (InetAddress.getByAddress (nextAddr));
-            nextHop.setPort (ByteBuffer.wrap (nextPort).getInt ());
+            if (nextPortNum == 0 && ByteBuffer.wrap (nextAddr).getInt () == 0) {
+                m_nextHop = null;
+            } else {
+                m_nextHop = new bfclient_rentry ();
+                m_nextHop.setAddr (InetAddress.getByAddress (nextAddr));
+                m_nextHop.setPort (nextPortNum);
+            }
         } catch (Exception e) {
             bfclient.logExp (e, true);
         }
