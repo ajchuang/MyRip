@@ -285,12 +285,15 @@ public class bfclient_proc implements Runnable {
         //
         //  find matching entry other than myself
         //      if found,
-        //          compare the current cost and remote cost + link cost
-        //              if the new link is smaller
-        //                  add to table
-        //              else
-        //                  forget it
-        //      if not found
+        //          if it comes from the next hop -
+        //              update accordingly
+        //          else
+        //              compare the current cost and remote cost + link cost
+        //                  if the new link is smaller
+        //                      add to table
+        //                  else
+        //                      forget it
+        //      else
         //          just add to the rtable
         
         for (int i=0; i<numEntry; ++i) {
@@ -315,6 +318,7 @@ public class bfclient_proc implements Runnable {
                 repo.searchRoutingTable (newEnt.getAddr (), newEnt.getPort ());
             
             if (rEnt != null) {
+                // TODO 
                 if (newCost < linkCost) {
                     // put it into the rtable
                     newEnt.setCost (newCost);
@@ -419,7 +423,7 @@ public class bfclient_proc implements Runnable {
                 InetAddress add = InetAddress.getByAddress (hopAddr);
                 int port = ByteBuffer.wrap (hopPort).getInt ();
             
-                bfclient.printMsg ("Hop: " + add + ":" + port);
+                bfclient.printMsg ("Hop " + i + ": " + add.getHostAddress () + ":" + port);
             }
         } catch (Exception e) {
             bfclient.logExp (e, false);
@@ -467,6 +471,9 @@ public class bfclient_proc implements Runnable {
             InetAddress myAddr = repo.getLocalAddr ();
             int myPort = repo.getPort ();
             
+            // enable local link
+            repo.enableLocalLink (addr, port);
+            
             // send link-down packet
             bfclient_packet pkt = new bfclient_packet ();
             pkt.setDstAddr  (addr);
@@ -476,8 +483,6 @@ public class bfclient_proc implements Runnable {
             pkt.setType     (bfclient_packet.M_LINK_UP);
             sendPacket (pkt.pack (), repo.searchAllRoutingTable (addr, port));
             
-            repo.enableLocalLink (addr, port);
-            
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
@@ -485,10 +490,26 @@ public class bfclient_proc implements Runnable {
     
     void processRcvLinkDown (bfclient_msg msg) {
         bfclient.logInfo ("processRcvLinkDown");
+        
+        bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
+        InetAddress srcAddr = pkt.getSrcAddr ();
+        int srcPort = pkt.getSrcPort ();
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        repo.diableLocalLink (srcAddr, srcPort);
+        bfclient.logInfo ("Local link disabled");
     }
     
     void processRcvLinkUp (bfclient_msg msg) {
         bfclient.logInfo ("processRcvLinkUp");
+        
+        bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
+        InetAddress srcAddr = pkt.getSrcAddr ();
+        int srcPort = pkt.getSrcPort ();
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        repo.enableLocalLink (srcAddr, srcPort);
+        bfclient.logInfo ("local link up");
     }
     
     // msg is the packet to send, rentry is the matching routing table entry
@@ -529,7 +550,7 @@ public class bfclient_proc implements Runnable {
             }
             
         } else {
-            bfclient.printMsg ("Host unreachable");
+            bfclient.logErr ("Host unreachable");
         }
     }
     

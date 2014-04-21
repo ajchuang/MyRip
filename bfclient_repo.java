@@ -14,6 +14,7 @@ public class bfclient_repo {
     // The routing table
     ArrayList<bfclient_rentry> m_rtable;
     ArrayList<bfclient_rentry> m_localEntryIdx;
+    bfclient_rentry m_loopback;
     
     // synchronous lock
     Object m_lock;
@@ -92,6 +93,13 @@ public class bfclient_repo {
                     System.exit (0);
                 }
                 
+                // init loopback - testing sugar
+                m_loopback = 
+                    bfclient_rentry.rentryFactory (
+                        m_hostAddr.getHostAddress (), 
+                        Integer.toString (m_port), "0.0", true);
+                m_loopback.setNextHop (null);
+                
             } else {
                 bfclient.logErr ("Empty file.");
                 System.exit (0);
@@ -101,10 +109,19 @@ public class bfclient_repo {
             
             while ((line = br.readLine ()) != null) {
                 String[] ln = line.split (":| ");
-                bfclient.logInfo ("ip: " + ln[0] + " port: " + ln[1] + " weight: " + ln[2]);
+                String nAddr = ln[0];
+                String nPort = ln[1];
+                String nWeight = ln[2];
+                bfclient.logInfo ("ip: " + nAddr + " port: " + nPort + " weight: " + nWeight);
+                
+                // a sugar that allows testing script using local host - local host translation
+                InetAddress neighbor = InetAddress.getByName (nAddr);
+                if (neighbor.isLoopbackAddress () == true) {
+                    nAddr = InetAddress.getLocalHost ().getHostAddress ();
+                }
                 
                 // insert into routing table
-                bfclient_rentry ent = bfclient_rentry.rentryFactory (ln[0], ln[1], ln[2], true);
+                bfclient_rentry ent = bfclient_rentry.rentryFactory (nAddr, nPort, nWeight, true);
                 ent.setOn (true);
                 ent.setIntfIdx (intf++);
                 m_rtable.add (ent);
@@ -155,6 +172,11 @@ public class bfclient_repo {
         }
     }
     
+    public void showLocalInterfaces () {
+        bfclient.printMsg (
+            "Local address:port = " + m_hostAddr.getHostAddress () + ":" + m_port);
+    }
+    
     public void addRoutingEntry (bfclient_rentry newEnt) {
         
         bfclient.logInfo ("addRoutingEntry: " + newEnt);
@@ -167,6 +189,11 @@ public class bfclient_repo {
     public final bfclient_rentry searchRoutingTable (InetAddress addr, int port) {
         
         bfclient_rentry ret = null;
+        
+        // you're sending to yourself.
+        if (addr.equals (m_hostAddr) && port == m_port) {
+            return m_loopback;
+        }
         
         synchronized (m_lock) {
             for (bfclient_rentry ent:m_rtable) {

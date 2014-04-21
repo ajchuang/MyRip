@@ -22,12 +22,17 @@ public class bfclient {
     public final static String M_PING      = "PING";
     public final static String M_TROUTE    = "TRACEROUTE";
     public final static String M_LOG       = "LOG";
+    public final static String M_HISTORY   = "HISTORY";
+    public final static String M_IFCONFIG  = "IFCONFIG";
     public final static String M_UPDATE_TO = "UPDATE_TIMER_TO";
     
     static String M_LOG_FILE;
     
     static Logger sm_lgr;  
     static FileHandler sm_loggerFh;
+    
+    static Vector<String> m_history;
+    static int            m_histIdx;
     
     static {
         try {
@@ -41,6 +46,10 @@ public class bfclient {
             sm_lgr.addHandler (sm_loggerFh);
             sm_lgr.setUseParentHandlers (false);
             sm_loggerFh.setFormatter (new SimpleFormatter ());
+            
+            // initialize history
+            m_history = new Vector<String> ();
+            m_histIdx = -1;
             
         } catch (Exception e) {
             System.out.println ("Severe exception in system booting");
@@ -72,7 +81,7 @@ public class bfclient {
             System.exit (0);
     }
     
-    public static void main (String[] args) {
+    public static void main (String[] args) throws Exception {
         
         if (args.length != 1) {
             logErr ("Parameter setting is incorrect.");
@@ -105,14 +114,31 @@ public class bfclient {
         System.out.println ("Welcome to bfclient console!");
         
         while (true) {
+            
             // read user input
             System.out.print ("$ ");
             String userInput = scn.nextLine ().trim ();
-        
+            
+            // doing history check
+            if (userInput.length () == 0) {
+                continue;
+            } else if (userInput.charAt (0) == '!') {
+                try {
+                    String histIdx = userInput.substring (1);
+                    int idx = Integer.parseInt (histIdx);
+                    userInput = m_history.elementAt (idx);
+                } catch (Exception e) {
+                    printMsg ("Invalid input");
+                    continue;
+                }
+            } else {
+                m_history.add (userInput);
+            }
+            
             // processing input tokens
             String[] toks = userInput.split (" ");
             
-            if (toks.length == 0)
+            if (toks.length == 0 || toks[0].length () == 0)
                 continue;
             
             // we just take lower and upper case
@@ -134,6 +160,10 @@ public class bfclient {
                 processLog (toks);
             } else if (cmd.equals (M_CLOSE) || cmd.equals (M_QUIT)) {
                 processClose ();
+            } else if (cmd.equals (M_HISTORY)) {
+                processHistory ();
+            } else if (cmd.equals (M_IFCONFIG)) {
+                processIfconfig ();
             } else {
                 System.out.println ("Unknown command: " + userInput);
             }
@@ -154,10 +184,16 @@ public class bfclient {
             return;
         }
         
-        bfclient_msg ping = new bfclient_msg (bfclient_msg.M_LINK_DOWN);
-        ping.enqueue (toks[1]);
-        ping.enqueue (toks[2]);
-        bfclient_proc.getMainProc ().enqueueMsg (ping);
+        String addr = toks[1];
+        String port = toks[2];
+        
+        // syntax sugar
+        addr = localhostTranslate (addr);
+        
+        bfclient_msg linkdown = new bfclient_msg (bfclient_msg.M_LINK_DOWN);
+        linkdown.enqueue (addr);
+        linkdown.enqueue (port);
+        bfclient_proc.getMainProc ().enqueueMsg (linkdown);
     }
     
     void processLinkUp (String[] toks) {
@@ -167,10 +203,16 @@ public class bfclient {
             return;
         }
         
-        bfclient_msg ping = new bfclient_msg (bfclient_msg.M_LINK_UP);
-        ping.enqueue (toks[1]);
-        ping.enqueue (toks[2]);
-        bfclient_proc.getMainProc ().enqueueMsg (ping);
+        String addr = toks[1];
+        String port = toks[2];
+        
+        // syntax sugar
+        addr = localhostTranslate (addr);
+        
+        bfclient_msg linkup = new bfclient_msg (bfclient_msg.M_LINK_UP);
+        linkup.enqueue (addr);
+        linkup.enqueue (port);
+        bfclient_proc.getMainProc ().enqueueMsg (linkup);
     }
     
     void processShowRt (String[] toks) {
@@ -192,9 +234,15 @@ public class bfclient {
             return;
         }
         
+        String addr = toks[1];
+        String port = toks[2];
+        
+        // syntax sugar
+        addr = localhostTranslate (addr);
+        
         bfclient_msg ping = new bfclient_msg (bfclient_msg.M_SEND_PING_REQ);
-        ping.enqueue (toks[1]);
-        ping.enqueue (toks[2]);
+        ping.enqueue (addr);
+        ping.enqueue (port);
         bfclient_proc.getMainProc ().enqueueMsg (ping);
     }
     
@@ -209,10 +257,30 @@ public class bfclient {
             return;
         }
         
+        String addr = toks[1];
+        String port = toks[2];
+        
+        // syntax sugar
+        addr = localhostTranslate (addr);
+        
         bfclient_msg ping = new bfclient_msg (bfclient_msg.M_SEND_TROUTE_REQ);
-        ping.enqueue (toks[1]);
-        ping.enqueue (toks[2]);
+        ping.enqueue (addr);
+        ping.enqueue (port);
         bfclient_proc.getMainProc ().enqueueMsg (ping);
+    }
+    
+    void processHistory () {
+        
+        printMsg ("History Commands");
+        
+        for (int i=0; i<m_history.size (); ++i) {
+            printMsg (i + ")\t" + m_history.elementAt (i));
+        }
+    }
+    
+    void processIfconfig () {
+        printMsg ("Local Interfaces:");
+        bfclient_repo.getRepo ().showLocalInterfaces ();
     }
     
     //  @lfred: 
@@ -237,5 +305,12 @@ public class bfclient {
         }
         
         printMsg ("");
+    }
+    
+    String localhostTranslate (String addr) {
+        if (addr.equals ("localhost"))
+            return bfclient_repo.getRepo ().getLocalAddr ().getHostAddress ();
+        else
+            return addr;
     }
 }
