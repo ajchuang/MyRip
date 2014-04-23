@@ -5,7 +5,8 @@ import java.nio.*;
 public class bfclient_rentry {
 
     public final static int M_DEFLATE_SIZE = 20;
-
+    public final static float M_MAX_LINE_COST = (float)999.0;
+    
     InetAddress m_addr;
     int     m_port;
     float   m_linkCost;
@@ -15,6 +16,8 @@ public class bfclient_rentry {
     int     m_intfIdx;  // which interface we send
     boolean m_isOn;     // if the interface is on
     boolean m_localIntf;
+    
+    long    m_lastUpdateTime;
     
     public static bfclient_rentry rentryFactory (byte[] data) {
         bfclient_rentry ent = null;
@@ -76,6 +79,8 @@ public class bfclient_rentry {
         m_nextHop = null;
         m_intfIdx = -1;
         m_isOn = false;
+        
+        m_lastUpdateTime = System.currentTimeMillis ();
     }
     
     private bfclient_rentry () {
@@ -85,6 +90,8 @@ public class bfclient_rentry {
         m_nextHop = null;
         m_intfIdx = -1;
         m_isOn = false;
+        
+        m_lastUpdateTime = System.currentTimeMillis ();
     }
     
     public boolean isLocalIf () {
@@ -108,11 +115,16 @@ public class bfclient_rentry {
     }
     
     public boolean getOn () {
-        return m_isOn;
+        if (m_linkCost >= M_MAX_LINE_COST)
+            return false;
+        else
+            return true;
+            
+        //return m_isOn;
     }
     
     public void setOn (boolean on) {
-        m_isOn = on;
+        //m_isOn = on;
     }
     
     public bfclient_rentry getNextHop () {
@@ -153,8 +165,16 @@ public class bfclient_rentry {
                 nextHop = "Unknown next hop";
         }
         
+        
+        String linkCost;
+        if (m_linkCost >= M_MAX_LINE_COST) {
+            linkCost = "Inf";
+        } else {
+            linkCost = Float.toString (m_linkCost);
+        }
+        
         return m_addr.getHostAddress () + ":" + m_port + "\t" + 
-               m_linkCost + "\t" + 
+               linkCost + "\t" + 
                nextHop    + "\t" +
                m_intfIdx;
     }
@@ -165,6 +185,14 @@ public class bfclient_rentry {
             return true;
         else
             return false;
+    }
+    
+    public long getLastUpdateTime () {
+        return m_lastUpdateTime;
+    }
+    
+    public void setUpdate () {
+        m_lastUpdateTime = System.currentTimeMillis ();
     }
     
     public byte[] deflate () {

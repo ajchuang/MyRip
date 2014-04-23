@@ -139,7 +139,14 @@ public class bfclient_proc implements Runnable {
         InetAddress hostAddr = repo.getLocalAddr ();
         int hostPort = repo.getPort ();
         
+        // Step 1. disable expired items
+        repo.checkLastUpdateTime ();
+        
+        // Step 2. send good items
         int localIfCnt = repo.getAllLocalIntfCnt ();
+        
+        //byte[] rtb = repo.getFlatRoutingTable (lent);
+        byte[] rtb = repo.getFlatRoutingTable ();
         
         for (int i=0; i<localIfCnt; ++i) {
             bfclient.logInfo ("processUpdateTimeout - 1");
@@ -148,7 +155,7 @@ public class bfclient_proc implements Runnable {
             if (lent.getOn () == false)
                 continue;
             
-            byte[] rtb = repo.getFlatRoutingTable (lent);
+            //byte[] rtb = repo.getFlatRoutingTable (lent);
             
             bfclient_packet pkt = new bfclient_packet ();
             pkt.setDstAddr (lent.getAddr ());
@@ -269,14 +276,17 @@ public class bfclient_proc implements Runnable {
         
         // prepare nexthop & linkcost
         bfclient_rentry nextHop = bfclient_rentry.rentryFactory (srcAddr, srcPort);
-        bfclient_rentry srcEntry = repo.searchRoutingTable (srcAddr, srcPort);
+        bfclient_rentry srcEntry = repo.searchAllRoutingTable (srcAddr, srcPort);
         
         // if the link is off, just ignore the link
-        if (srcEntry == null || srcEntry.getOn () == false) {
-            bfclient.logInfo ("Receiving an UPDATE from DOWN LINK");
+        if (srcEntry == null) {
+            bfclient.logInfo ("Receiving an UPDATE from an unknown link");
             return;
+        } else if (srcEntry.getOn () == false) {
+            bfclient.logInfo ("Receiving an UPDATE from DOWN LINK");
         }
         
+        srcEntry.setUpdate ();
         float linkCost = srcEntry.getCost ();
     
         //  for every entry in the packet
@@ -320,40 +330,66 @@ public class bfclient_proc implements Runnable {
                 repo.searchAllRoutingTable (newEnt.getAddr (), newEnt.getPort ());
             
             if (rEnt != null) {
-                if (rEnt.getOn () &&
-                    rEnt.getNextHop () != null && 
+                
+                rEnt.setUpdate ();
+                
+                if (rEnt.getNextHop () != null && 
                     rEnt.getNextHop ().getAddr ().equals (srcAddr) && 
                     rEnt.getNextHop ().getPort () == srcPort) {
-                        
+                    
+                    bfclient.logErr ("new entry.1");
                     // only update existing ON entry
-                    rEnt.setCost (newCost);
+                    
                     rEnt.setNextHop (nextHop);
                     rEnt.setIntfIdx (srcEntry.getIntfIdx ());
-                    rEnt.setOn (true);
+                    
+                    if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
+                        rEnt.setOn (false);
+                        rEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                    } else {
+                        rEnt.setOn (true);
+                        rEnt.setCost (newCost);
+                    }
+                    
                 } else if (newEnt.getNextHop () != null &&
                            newEnt.getNextHop ().getAddr ().equals (repo.getLocalAddr ()) && 
                            newEnt.getNextHop ().getPort () == repo.getPort ()) {
                     // ignore if the new entry's next hop is myself
-                    bfclient.logErr ("Hit split horizon");
-                } else { 
-                    // if not the next hop
-                    if (rEnt.getOn () && newCost < linkCost) {
+                    bfclient.logErr ("new entry.2 - split horizon");
+                } else {
+                    // if not the next hop 
+                    if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
+                        // not reachable - 
+                        bfclient.logErr ("new entry.3");
+                        rEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                        //rEnt.setOn (false);
+                    } else if (rEnt.getOn () && newCost < linkCost) {
                         // Update the rtable
+                        bfclient.logErr ("new entry.4");
                         rEnt.setCost (newCost);
                         rEnt.setNextHop (nextHop);
                         rEnt.setIntfIdx (srcEntry.getIntfIdx ());
-                        rEnt.setOn (true);
+                        //rEnt.setOn (true);
                     } else {
                         // drop it (bad link or off link)
+                        bfclient.logErr ("new entry.5");
                     }
                 }
             } else {
-                 // just add to the rtable
-                newEnt.setCost (newCost);
-                newEnt.setNextHop (nextHop);
-                newEnt.setIntfIdx (srcEntry.getIntfIdx ());
-                newEnt.setOn (true);
-                repo.addRoutingEntry (newEnt);
+                
+                // just ignore the 999 routes
+                //if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
+                //    bfclient.logErr ("new entry.6");
+                //    continue;
+                //} else {
+                    bfclient.logErr ("new entry.7");
+                    // just add to the rtable
+                    newEnt.setCost (newCost);
+                    newEnt.setNextHop (nextHop);
+                    newEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                    newEnt.setOn (true);
+                    repo.addRoutingEntry (newEnt);
+                //}
             }
         }
     }
@@ -366,7 +402,19 @@ public class bfclient_proc implements Runnable {
         InetAddress dstAddr = pkt.getDstAddr ();
         int dstPort = pkt.getDstPort ();
         bfclient_rentry rent = repo.searchRoutingTable (dstAddr, dstPort);
-        sendPacket (pkt.pack (), rent);
+        
+        if (rent == null) {
+            bfclient_packet ctl = new bfclient_packet ();
+            ctl.setDstAddr (pkt.getSrcAddr ());
+            ctl.setDstPort (pkt.getSrcPort ());
+            ctl.setSrcAddr (repo.getLocalAddr ());
+            ctl.setSrcPort (repo.getPort ());
+            ctl.setType    (bfclient_packet.M_HOST_NOT_REACHABLE);
+            bfclient_rentry initSrc = repo.searchRoutingTable (pkt.getSrcAddr (), repo.getPort ());
+            sendPacket (ctl.pack (), initSrc);
+        } else {
+            sendPacket (pkt.pack (), rent);
+        }
     }
     
     void processTroute (bfclient_msg msg) {
@@ -484,13 +532,17 @@ public class bfclient_proc implements Runnable {
             
             String destAddrStr = msg.dequeue ();
             String destPortStr = msg.dequeue ();
+            String linkCostStr = msg.dequeue ();
+            
             InetAddress addr = InetAddress.getByName (destAddrStr);
             int port = Integer.parseInt (destPortStr);
             InetAddress myAddr = repo.getLocalAddr ();
             int myPort = repo.getPort ();
+            float cost = Float.parseFloat (linkCostStr);
+            byte[] cArray = ByteBuffer.allocate (4).putFloat (cost).array ();
             
             // enable local link
-            repo.enableLocalLink (addr, port);
+            repo.enableLocalLink (addr, port, cost);
             
             // send link-down packet
             bfclient_packet pkt = new bfclient_packet ();
@@ -499,6 +551,7 @@ public class bfclient_proc implements Runnable {
             pkt.setSrcAddr  (myAddr);
             pkt.setSrcPort  (myPort);
             pkt.setType     (bfclient_packet.M_LINK_UP);
+            pkt.setUserData (cArray);
             sendPacket (pkt.pack (), repo.searchAllRoutingTable (addr, port));
             
         } catch (Exception e) {
@@ -524,9 +577,10 @@ public class bfclient_proc implements Runnable {
         bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
         InetAddress srcAddr = pkt.getSrcAddr ();
         int srcPort = pkt.getSrcPort ();
+        float cost = ByteBuffer.wrap (pkt.getUserData ()).getFloat ();
         
         bfclient_repo repo = bfclient_repo.getRepo ();
-        repo.enableLocalLink (srcAddr, srcPort);
+        repo.enableLocalLink (srcAddr, srcPort, cost);
         bfclient.logInfo ("local link up");
     }
     
@@ -534,6 +588,12 @@ public class bfclient_proc implements Runnable {
     void sendPacket (byte[] msg, bfclient_rentry rentry) {
         
         if (rentry != null) {
+            
+            if (rentry.getCost () >= bfclient_rentry.M_MAX_LINE_COST) {
+                bfclient.logErr ("Destination not reachable - " + rentry);
+                return;
+            }
+            
             bfclient.logInfo ("Packet is forwarding to " + rentry);
             
             InetAddress nextAddr;

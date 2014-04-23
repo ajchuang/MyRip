@@ -197,14 +197,15 @@ public class bfclient {
     }
     
     void processLinkUp (String[] toks) {
-        if (toks.length != 3) {
+        if (toks.length != 4) {
             printMsg ("Command format error.");
-            printMsg ("[Usage] LINKUP [ip] [port]");
+            printMsg ("[Usage] LINKUP [ip] [port] [weight]");
             return;
         }
         
         String addr = toks[1];
         String port = toks[2];
+        String cost = toks[3];
         
         // syntax sugar
         addr = localhostTranslate (addr);
@@ -212,6 +213,7 @@ public class bfclient {
         bfclient_msg linkup = new bfclient_msg (bfclient_msg.M_LINK_UP);
         linkup.enqueue (addr);
         linkup.enqueue (port);
+        linkup.enqueue (cost);
         bfclient_proc.getMainProc ().enqueueMsg (linkup);
     }
     

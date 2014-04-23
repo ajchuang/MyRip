@@ -108,6 +108,7 @@ public class bfclient_repo {
             int intf = 0;
             
             while ((line = br.readLine ()) != null) {
+                
                 String[] ln = line.split (":| ");
                 String nAddr = ln[0];
                 String nPort = ln[1];
@@ -165,9 +166,9 @@ public class bfclient_repo {
         
         synchronized (m_lock) {
             for (bfclient_rentry ent:m_rtable) {
-                if (ent.getOn () == true) {
+                //if (ent.getOn () == true) {
                     bfclient.printMsg (ent.toString ());
-                }
+                //}
             }
         }
     }
@@ -233,7 +234,9 @@ public class bfclient_repo {
         }
         
         synchronized (m_lock) {
-            localLink.setOn (false);
+            
+            //localLink.setOn (false);
+            localLink.setCost (bfclient_rentry.M_MAX_LINE_COST);
             
             ListIterator<bfclient_rentry> lstItr =  m_rtable.listIterator ();
             
@@ -246,7 +249,9 @@ public class bfclient_repo {
                     ent.getIntfIdx () == idx) {
                     
                     // remove the entry
-                    lstItr.remove ();
+                    // lstItr.remove ();
+                    // ent.setOn (false);
+                    ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
                 }
             }
         }
@@ -254,16 +259,11 @@ public class bfclient_repo {
         return true;
     }
     
-    public final boolean enableLocalLink (InetAddress addr, int port) {
-        bfclient_rentry localLink = searchRoutingTable (addr, port);
-        int idx = getLocalIntfIdx (addr, port);
+    public final boolean enableLocalLink (InetAddress addr, int port, float cost) {
+        bfclient_rentry localLink = searchAllRoutingTable (addr, port);
         
-        synchronized (m_lock) {
-            for (bfclient_rentry ent: m_localEntryIdx) {
-                if (ent.getAddr ().equals (addr) && ent.getPort () == port)
-                    ent.setOn (true);
-            }
-        }
+        if (localLink != null)
+            localLink.setCost (cost);
         
         return true;
     }
@@ -309,24 +309,41 @@ public class bfclient_repo {
         return cnt;
     }
     
-    // for given local entry, do 
-    public byte[] getFlatRoutingTable (bfclient_rentry local_if) {
+    public void checkLastUpdateTime () {
+        long now = System.currentTimeMillis ();
         
-        if (local_if.getOn () == false) {
-            return null;
+        synchronized (m_lock) {
+            for (bfclient_rentry ent: m_rtable) {
+                
+                if ((ent.getOn ()) && 
+                    (now - ent.getLastUpdateTime ()) > 3000 * m_timeout) {
+                    bfclient.logErr ("Link: " + ent + " expired.");
+                    ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                } 
+            }
         }
+    }
+    
+    // for given local entry, do 
+    public byte[] getFlatRoutingTable () { //bfclient_rentry local_if) {
         
-        byte[] out = new byte[m_rtable.size () * 20];
+        //if (local_if.getOn () == false) {
+        //    return null;
+        //}
+        
+        byte[] out = new byte[m_rtable.size () * bfclient_rentry.M_DEFLATE_SIZE];
         int c_idx = 0;
         
         synchronized (m_lock) {
             for (bfclient_rentry ent: m_rtable) {
                 byte[] current = ent.deflate ();
-                System.arraycopy (current, 0, out, c_idx, 20);
-                c_idx += 20;
+                System.arraycopy (current, 0, out, c_idx, bfclient_rentry.M_DEFLATE_SIZE);
+                c_idx += bfclient_rentry.M_DEFLATE_SIZE;
             }
         }
         
         return out;
     }
+    
+    
 }

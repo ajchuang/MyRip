@@ -136,6 +136,8 @@ public class bfclient_listener implements Runnable {
                 bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_LINK_DOWN);
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_HOST_NOT_REACHABLE) {
+                bfclient.printMsg ("packet sent unreachable: " + inc.getSrcAddr ());
             } else if (inc.getType () == bfclient_packet.M_HOST_UNKNOWN_PACKET) {
                 // debuggin - stop now
                 bfclient.logInfo ("Receiving unknown packet error");

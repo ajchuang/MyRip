@@ -7,4 +7,8 @@ word 04: source port
 word 05: TYPE (1 byte) | TOTAL_PART_NUM (1 byte) | PART_NUM (1 byte) | IP_ID (1 byte)
 word 06: DATA LENGTH
 ----
-....
+word 07: SESSION_NUM (2 byte) | SEQUENCE_NUM (2 byte)
+word 08: FIN (1 byte) | SYN (1 byte) | ACK (1 byte) | RESERVED (1 byte)
+word 09: DATA_LEN
+
+
