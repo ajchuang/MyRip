@@ -356,7 +356,7 @@ public class bfclient_repo {
             for (bfclient_rentry ent: m_rtable) {
                 
                 if ((ent.getOn ()) && 
-                    (now - ent.getLastUpdateTime ()) > 3000 * m_timeout) {
+                    (now - ent.getLastUpdateTime ()) > 3 * 1000 * m_timeout) {
                     bfclient.logErr ("Link: " + ent + " expired.");
                     ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
                 } 

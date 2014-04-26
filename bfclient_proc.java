@@ -342,16 +342,14 @@ public class bfclient_proc implements Runnable {
             
             if (rEnt != null) {
                 
-                rEnt.setUpdate ();
+                
                 
                 if (rEnt.getNextHop () != null && 
                     rEnt.getNextHop ().getAddr ().equals (srcAddr) && 
                     rEnt.getNextHop ().getPort () == srcPort) {
                     
                     bfclient.logErr ("new entry.1 - next hop is sender, update cost as he says");
-                    
-                    //rEnt.setNextHop (nextHop);
-                    //rEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                    rEnt.setUpdate ();
                     
                     if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
                         rEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
@@ -375,6 +373,7 @@ public class bfclient_proc implements Runnable {
                         rEnt.setCost (newCost);
                         rEnt.setNextHop (nextHop);
                         rEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                        rEnt.setUpdate ();
                     } else {
                         // drop it (bad link or off link)
                         bfclient.logErr ("new entry.5 - worse link, drop it");

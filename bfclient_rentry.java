@@ -36,12 +36,7 @@ public class bfclient_rentry {
         bfclient_rentry ent = null;
         
         try { 
-            ent = 
-                new bfclient_rentry (
-                        addr,
-                        port,
-                        (float)0.0,
-                        false);
+            ent = new bfclient_rentry (addr, port, (float)0.0, false);
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
