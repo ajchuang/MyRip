@@ -249,12 +249,14 @@ public class bfclient {
             printMsg ("This client did not configure chunk");
             return;
         } else if (f.length () > 61440 || f.length () == 0) {
-            printMsg ("The file size is incorrect.");
+            printMsg ("The file size," + f.length () + ", is incorrect.");
             return;
         } 
         
+        
         String addr = toks[1];
         String port = toks[2];
+        printMsg ("Starting to transfer to " + addr + ":" + port);
         
         // syntax sugar
         addr = localhostTranslate (addr);

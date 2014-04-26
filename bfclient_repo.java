@@ -4,7 +4,7 @@ import java.util.*;
 
 public class bfclient_repo {
 
-    final static String sm_simpleTransFileName = "output";
+    final static String sm_simpleTransFileName = "./fs/output";
     
     static bfclient_repo m_repo;
     static InetAddress m_hostAddr;

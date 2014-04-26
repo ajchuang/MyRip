@@ -143,6 +143,7 @@ public class bfclient_listener implements Runnable {
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_USER_BASIC_TRANS_ACK) {
+                bfclient.printMsg ("Data ACK received.");
                 bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_SMPL_TRANS_ACK);
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);

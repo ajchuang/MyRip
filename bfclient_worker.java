@@ -36,6 +36,7 @@ public class bfclient_worker implements Runnable {
     LinkedBlockingQueue<bfclient_msg> m_queue;
     java.util.Timer m_opTimer;
     int   m_opCode;
+    int   m_opRetryCnt;
     
     // thread lock mechanism
     Lock m_lock = new ReentrantLock ();
@@ -54,11 +55,15 @@ public class bfclient_worker implements Runnable {
     
     private bfclient_worker () {
         m_queue = new LinkedBlockingQueue<bfclient_msg> ();
+        m_opTimer = null;
+        m_opCode = M_OP_NONE;
+        m_opRetryCnt = 0;
     }
     
     public void assignWork (bfclient_msg m) {
         try {
             m_lock.lock ();
+            m_opRetryCnt = 0;
             m_queue.put (m);
             m_threadCond.await ();
         } catch (Exception e) {
@@ -98,6 +103,11 @@ public class bfclient_worker implements Runnable {
                     // When ack is received.
                     case M_RCV_SIMPLE_TRANS_ACK:
                         processSimpleTransAck (msg);
+                    break;
+                    
+                    // When data transder is 
+                    case M_RCV_SIMPLE_TRANS_TO:
+                        processSimpleTransTO (msg);
                     break;
                     
                     case M_START_PING:
@@ -180,6 +190,31 @@ public class bfclient_worker implements Runnable {
     
     // @lfred: on receiving ack of the data
     void processSimpleTransAck (bfclient_msg msg) {
+        // this is danger...
+        m_opTimer.cancel ();
+        m_opTimer = null;
+        m_opCode = M_OP_NONE;
+        
+        bfclient.logInfo ("Worker: Receiving ACK for simple ack");
+        bfclient.printMsg ("Chunk transfer completed.");
+        
+        // start the CLI thread
+        m_lock.lock ();
+        m_threadCond.signal ();
+        m_lock.unlock ();
+    }
+    
+    // @lfred: on transmission timer timeout
+    void processSimpleTransTO (bfclient_msg msg) {
+        
+        m_opRetryCnt++;
+        
+        if (m_opRetryCnt == 3) {
+            // stop retrying.
+        } else {
+            // resend data and restart timer
+        }
+        
     }
     
     void processPing (bfclient_msg msg) {
