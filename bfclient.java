@@ -413,8 +413,8 @@ public class bfclient {
             }
             
         } catch (Exception e) {
-            bfclient.logExp (e, false);
-            printMsg ("\nRead file error");
+            //bfclient.logExp (e, false);
+            printMsg ("\n The selected file does not exist");
         }
         
         printMsg ("");

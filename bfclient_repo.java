@@ -4,7 +4,7 @@ import java.util.*;
 
 public class bfclient_repo {
 
-    final static String sm_simpleTransFileName = "./fs/output";
+    static String sm_simpleTransFileName = "./fs/output";
     
     static bfclient_repo m_repo;
     static InetAddress m_hostAddr;
@@ -109,6 +109,27 @@ public class bfclient_repo {
                         m_hostAddr.getHostAddress (), 
                         Integer.toString (m_port), "0.0", true);
                 m_loopback.setNextHop (null);
+                
+                // loading mychunks
+                sm_simpleTransFileName += m_port;
+                
+                if (m_transFileName != null) {                    
+                    try {
+                        // read file
+                        File cf = new File (m_transFileName);
+                        InputStream insputStream = new FileInputStream (cf);
+                        long fLen = cf.length ();
+                        byte[] fData = new byte [(int)fLen];
+                        insputStream.read (fData);
+                        insputStream.close ();
+                    
+                        bfclient_chunk myChunk = new bfclient_chunk (m_chuckNum, fData);
+                        m_simpleTranChunks.add (myChunk);
+                    } catch (Exception e) {
+                        bfclient.printMsg ("Fatal: Chunk file does not exist.");
+                        bfclient.logExp (e, true);
+                    }
+                }
                 
             } else {
                 bfclient.logErr ("Empty file.");
@@ -350,7 +371,7 @@ public class bfclient_repo {
         
         // check missing part.
         for (int i=0; i<m_simpleTranChunks.size(); ++i) {
-            if (m_simpleTranChunks.get (i).getId () != i) {
+            if (m_simpleTranChunks.get (i).getId () != i+1) {
                 // @lfred: still missing part
                 return;
             }
@@ -362,9 +383,9 @@ public class bfclient_repo {
         
             for (int i=0; i<m_simpleTranChunks.size(); ++i) {
                 fos.write (m_simpleTranChunks.get(i).getData ());
-                fos.flush ();
             } 
-        
+            
+            fos.flush ();
             fos.close ();
         } catch (Exception e) {
             bfclient.logExp (e, false);
