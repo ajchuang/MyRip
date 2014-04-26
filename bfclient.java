@@ -97,6 +97,9 @@ public class bfclient {
         // start main thread
         new Thread (bfclient_proc.getMainProc ()).start ();
         
+        // start worker thread
+        new Thread (bfclient_worker.getWorker ()).start ();
+        
         // start server
         new Thread (bfclient_listener.getListener ()).start (); 
         
@@ -151,7 +154,7 @@ public class bfclient {
             } else if (cmd.equals (M_SHOWRT)) {
                 processShowRt (toks);
             } else if (cmd.equals (M_TRANSFER)) {
-                processTransfer (toks);
+                processBasicTransfer (toks);
             } else if (cmd.equals (M_PING)) {
                 processPing (toks);
             } else if (cmd.equals (M_TROUTE)) {
@@ -225,7 +228,41 @@ public class bfclient {
         System.exit (0);
     }
     
-    void processTransfer (String[] toks) {
+    void processBasicTransfer (String[] toks) {
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        String fName = repo.getFileName ();
+        File f;
+        
+        try {
+            f = new File (fName);
+        } catch (Exception e) {
+            printMsg ("Appointed file does not exist.");
+            return;
+        }
+         
+        if (toks.length != 3) {
+            printMsg ("Command format error.");
+            printMsg ("[Usage] transfer [ip] [port]");
+            return;
+        } else if (fName == null) {
+            printMsg ("This client did not configure chunk");
+            return;
+        } else if (f.length () > 61440 || f.length () == 0) {
+            printMsg ("The file size is incorrect.");
+            return;
+        } 
+        
+        String addr = toks[1];
+        String port = toks[2];
+        
+        // syntax sugar
+        addr = localhostTranslate (addr);
+        
+        bfclient_msg req = new bfclient_msg (bfclient_worker.M_START_SIMPLE_TRANSFER);
+        req.enqueue (addr);
+        req.enqueue (port);
+        bfclient_worker.getWorker ().assignWork (req);
     }
     
     void processPing (String[] toks) {
@@ -242,10 +279,10 @@ public class bfclient {
         // syntax sugar
         addr = localhostTranslate (addr);
         
-        bfclient_msg ping = new bfclient_msg (bfclient_msg.M_SEND_PING_REQ);
+        bfclient_msg ping = new bfclient_msg (bfclient_worker.M_START_PING);
         ping.enqueue (addr);
         ping.enqueue (port);
-        bfclient_proc.getMainProc ().enqueueMsg (ping);
+        bfclient_worker.getWorker().assignWork (ping);
     }
     
     //  @lfred:

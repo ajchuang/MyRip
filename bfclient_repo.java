@@ -4,12 +4,19 @@ import java.util.*;
 
 public class bfclient_repo {
 
+    final static String sm_simpleTransFileName = "output";
+    
     static bfclient_repo m_repo;
     static InetAddress m_hostAddr;
     
     int m_port;
     int m_timeout;
     String m_configFileName;
+    
+    // for simple trans
+    String m_transFileName;
+    int    m_chuckNum;
+    LinkedList<bfclient_chunk> m_simpleTranChunks;
     
     // The routing table
     ArrayList<bfclient_rentry> m_rtable;
@@ -56,6 +63,7 @@ public class bfclient_repo {
         m_rtable = new ArrayList<bfclient_rentry> ();
         m_localEntryIdx = new ArrayList<bfclient_rentry> ();
         m_lock = new Object (); 
+        m_simpleTranChunks = new LinkedList<bfclient_chunk> (); 
     }
     
     public void parseConfigFile () {
@@ -88,6 +96,8 @@ public class bfclient_repo {
                     bfclient.logInfo ("File: " + lns[2] + " sequence: " + lns[3]);
                     m_port = Integer.parseInt (lns[0]);
                     m_timeout = Integer.parseInt (lns[1]);
+                    m_transFileName = lns[2];
+                    m_chuckNum = Integer.parseInt (lns[3]);
                 } else {
                     bfclient.logErr ("Incorrect config file line 1");
                     System.exit (0);
@@ -117,13 +127,14 @@ public class bfclient_repo {
                 
                 // a sugar that allows testing script using local host - local host translation
                 InetAddress neighbor = InetAddress.getByName (nAddr);
+                
                 if (neighbor.isLoopbackAddress () == true) {
                     nAddr = InetAddress.getLocalHost ().getHostAddress ();
                 }
                 
                 // insert into routing table
                 bfclient_rentry ent = bfclient_rentry.rentryFactory (nAddr, nPort, nWeight, true);
-                ent.setOn (true);
+                //ent.setOn (true);
                 ent.setIntfIdx (intf++);
                 m_rtable.add (ent);
                 m_localEntryIdx.add (ent);
@@ -134,6 +145,14 @@ public class bfclient_repo {
         } catch (Exception e) {
             bfclient.logExp (e, true);    
         } 
+    }
+    
+    public final String getFileName () {
+        return m_transFileName;
+    }
+    
+    public int getChunkNum () {
+        return m_chuckNum;
     }
 
     // getters & setters
@@ -322,6 +341,36 @@ public class bfclient_repo {
                 } 
             }
         }
+    }
+    
+    public void onRcvSimpleChunk (bfclient_chunk chk) {
+        
+        m_simpleTranChunks.add (chk);
+        Collections.sort (m_simpleTranChunks);
+        
+        // check missing part.
+        for (int i=0; i<m_simpleTranChunks.size(); ++i) {
+            if (m_simpleTranChunks.get (i).getId () != i) {
+                // @lfred: still missing part
+                return;
+            }
+        }
+        
+        try {
+            // if the list is done, dump the data to file.
+            FileOutputStream fos = new FileOutputStream (new File (sm_simpleTransFileName));
+        
+            for (int i=0; i<m_simpleTranChunks.size(); ++i) {
+                fos.write (m_simpleTranChunks.get(i).getData ());
+                fos.flush ();
+            } 
+        
+            fos.close ();
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+        
+        return;
     }
     
     // for given local entry, do 

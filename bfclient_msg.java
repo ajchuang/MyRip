@@ -27,6 +27,11 @@ public class bfclient_msg {
     public final static int M_LINK_UP           = 42;
     public final static int M_RCV_LINK_UP       = 43;
     
+    public final static int M_SND_SMPL_TRANS_DATA  = 70;
+    public final static int M_RCV_SMPL_TRANS_DATA  = 71;
+    public final static int M_SND_SMPL_TRANS_ACK   = 72;
+    public final static int M_RCV_SMPL_TRANS_ACK   = 73;
+    
     
     int m_type;
     LinkedList<String> m_data;
@@ -65,6 +70,14 @@ public class bfclient_msg {
     
     public Object getUserData () {
         return m_userData;
+    }
+    
+    public void setBinData (byte[] binData) {
+        m_binData = binData;
+    }
+    
+    public byte[] getBinData () {
+        return m_binData;
     }
     
     public void showHeader () {

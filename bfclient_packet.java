@@ -19,6 +19,9 @@ public class bfclient_packet {
     
     // user packet
     public final static byte M_USER_DATA = 0x20;
+    public final static byte M_USER_BASIC_TRANS = 0x21;
+    public final static byte M_USER_BASIC_TRANS_ACK = 0x22;
+    
     
     public final static byte M_LINK_DOWN    = 0x30;
     public final static byte M_LINK_UP      = 0x31;
@@ -33,7 +36,7 @@ public class bfclient_packet {
     InetAddress m_srcAddr;
     int         m_srcPort;
     byte        m_type;
-    byte        m_reserve_01;
+    byte        m_chunkId;
     byte        m_reserve_02;
     byte        m_pktId;
     int         m_dataLen;
@@ -71,6 +74,7 @@ public class bfclient_packet {
             m_srcAddr = InetAddress.getByAddress (srcRawAddr);
             m_srcPort = ByteBuffer.wrap (srcRawPort).getInt ();
             m_type    = control[0];
+            m_chunkId = control[1];
             m_pktId   = control[3];
             m_dataLen = ByteBuffer.wrap (rawDataLen).getInt ();
             
@@ -128,6 +132,14 @@ public class bfclient_packet {
     
     public byte getPktId () {
         return m_pktId;
+    }
+    
+    public void setChunkId (byte cId) {
+        m_chunkId = cId;
+    }
+    
+    public byte getChunkId () {
+        return m_chunkId;
     }
     
     public void setUserData (byte[] uData) {

@@ -6,7 +6,7 @@ import java.nio.*;
 
 public class bfclient_proc implements Runnable {
     
-    final static byte M_PKT_TYPE_PING   = 0x01;
+    //final static byte M_PKT_TYPE_PING   = 0x01;
 
     static bfclient_proc sm_proc;
     
@@ -33,10 +33,6 @@ public class bfclient_proc implements Runnable {
     public void enqueueMsg (bfclient_msg m) {
         
         try {
-            // debug code
-            if (m.getType () == 0)
-                throw new Exception ();
-                
             m_queue.put (m);
         } catch (Exception e) {
             bfclient.logExp (e, true);
@@ -117,6 +113,18 @@ public class bfclient_proc implements Runnable {
                     
                     case bfclient_msg.M_RCV_LINK_UP:
                         processRcvLinkUp (msg);
+                    break;
+                    
+                    case bfclient_msg.M_SND_SMPL_TRANS_DATA:
+                        processSndSimpleTrans (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_SMPL_TRANS_DATA:
+                        processRcvSimpleTrans (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_SMPL_TRANS_ACK:
+                        processRcvSimpleTransAck (msg);
                     break;
                     
                     default:
@@ -286,7 +294,6 @@ public class bfclient_proc implements Runnable {
             bfclient.logInfo ("Receiving an UPDATE from DOWN LINK");
         }
         
-        srcEntry.setUpdate ();
         float linkCost = srcEntry.getCost ();
     
         //  for every entry in the packet
@@ -315,11 +322,15 @@ public class bfclient_proc implements Runnable {
                 incTable, i*bfclient_rentry.M_DEFLATE_SIZE, curEntry, 0, 
                 bfclient_rentry.M_DEFLATE_SIZE);
             bfclient_rentry newEnt = bfclient_rentry.rentryFactory (curEntry);
-            bfclient.logErr ("new entry: " + newEnt.toString ());
+            bfclient.logErr (" receiving entry: " + newEnt.toString ());
             
+            // even if its me, I still need to read the value and check if updated
             if (newEnt.getAddr ().equals (repo.getLocalAddr ()) && 
                 newEnt.getPort () == repo.getPort ()) {
-                // skip the entry - this is me
+                bfclient.logErr ("new entry.0 - a link to me, just update cost & update");
+                // this is me, I will not add to the routing table, but need to adjust cost
+                srcEntry.setCost (newEnt.getCost ());
+                srcEntry.setUpdate ();
                 continue;
             }
             
@@ -337,17 +348,14 @@ public class bfclient_proc implements Runnable {
                     rEnt.getNextHop ().getAddr ().equals (srcAddr) && 
                     rEnt.getNextHop ().getPort () == srcPort) {
                     
-                    bfclient.logErr ("new entry.1");
-                    // only update existing ON entry
+                    bfclient.logErr ("new entry.1 - next hop is sender, update cost as he says");
                     
-                    rEnt.setNextHop (nextHop);
-                    rEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                    //rEnt.setNextHop (nextHop);
+                    //rEnt.setIntfIdx (srcEntry.getIntfIdx ());
                     
                     if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
-                        rEnt.setOn (false);
                         rEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
                     } else {
-                        rEnt.setOn (true);
                         rEnt.setCost (newCost);
                     }
                     
@@ -355,41 +363,30 @@ public class bfclient_proc implements Runnable {
                            newEnt.getNextHop ().getAddr ().equals (repo.getLocalAddr ()) && 
                            newEnt.getNextHop ().getPort () == repo.getPort ()) {
                     // ignore if the new entry's next hop is myself
-                    bfclient.logErr ("new entry.2 - split horizon");
+                    bfclient.logErr ("new entry.2 - next hop is me, dont update - split horizon");
                 } else {
                     // if not the next hop 
                     if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
-                        // not reachable - 
-                        bfclient.logErr ("new entry.3");
+                        bfclient.logErr ("new entry.3 - this link is down");
                         rEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
-                        //rEnt.setOn (false);
-                    } else if (rEnt.getOn () && newCost < linkCost) {
+                    } else if (newCost < linkCost) {
                         // Update the rtable
-                        bfclient.logErr ("new entry.4");
+                        bfclient.logErr ("new entry.4 - better link is found");
                         rEnt.setCost (newCost);
                         rEnt.setNextHop (nextHop);
                         rEnt.setIntfIdx (srcEntry.getIntfIdx ());
-                        //rEnt.setOn (true);
                     } else {
                         // drop it (bad link or off link)
-                        bfclient.logErr ("new entry.5");
+                        bfclient.logErr ("new entry.5 - worse link, drop it");
                     }
                 }
             } else {
-                
-                // just ignore the 999 routes
-                //if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
-                //    bfclient.logErr ("new entry.6");
-                //    continue;
-                //} else {
-                    bfclient.logErr ("new entry.7");
-                    // just add to the rtable
-                    newEnt.setCost (newCost);
-                    newEnt.setNextHop (nextHop);
-                    newEnt.setIntfIdx (srcEntry.getIntfIdx ());
-                    newEnt.setOn (true);
-                    repo.addRoutingEntry (newEnt);
-                //}
+                bfclient.logErr ("new entry.6 - unforeseen link is found");
+
+                newEnt.setCost (newCost);
+                newEnt.setNextHop (nextHop);
+                newEnt.setIntfIdx (srcEntry.getIntfIdx ());
+                repo.addRoutingEntry (newEnt);
             }
         }
     }
@@ -582,6 +579,92 @@ public class bfclient_proc implements Runnable {
         bfclient_repo repo = bfclient_repo.getRepo ();
         repo.enableLocalLink (srcAddr, srcPort, cost);
         bfclient.logInfo ("local link up");
+    }
+    
+    void processSndSimpleTrans (bfclient_msg msg) {
+        bfclient.logInfo ("processSndSimpleTrans");
+      
+        try {
+            bfclient_repo repo = bfclient_repo.getRepo ();  
+            String dstAddrStr = msg.dequeue ();
+            String dstPortStr = msg.dequeue ();
+            String fName = msg.dequeue ();
+            String chunkNum = msg.dequeue ();
+                
+            InetAddress addr = InetAddress.getByName (dstAddrStr);
+            int port = Integer.parseInt (dstPortStr);
+            InetAddress myAddr = repo.getLocalAddr ();
+            int myPort = repo.getPort ();
+            byte cId = Byte.parseByte (chunkNum);
+            
+            // read file
+            File f = new File (fName);
+            InputStream insputStream = new FileInputStream (f);
+            long fLen = f.length ();
+            byte[] fData = new byte [(int)fLen];
+            insputStream.read (fData);
+            insputStream.close ();
+            
+            bfclient_packet pkt = new bfclient_packet ();
+            pkt.setDstAddr  (addr);
+            pkt.setDstPort  (port);
+            pkt.setSrcAddr  (myAddr);
+            pkt.setSrcPort  (myPort);
+            pkt.setType     (bfclient_packet.M_USER_BASIC_TRANS);
+            pkt.setChunkId  (cId);
+            pkt.setUserData (fData); 
+            
+            bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
+            sendPacket (pkt.pack (), nextHop);
+            
+        } catch (Exception e) {
+            bfclient.logErr ("Error while sending packet");
+            bfclient.logErr ("Wait for retry");
+            
+        }
+        return;
+    }
+    
+    void processRcvSimpleTrans (bfclient_msg msg) {
+        
+        bfclient.logInfo ("processRcvSimpleTrans");
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
+        InetAddress srcAddr = pkt.getSrcAddr ();
+        int srcPort = pkt.getSrcPort ();
+        InetAddress dstAddr = pkt.getDstAddr ();
+        int dstPort = pkt.getDstPort ();
+        
+        // 1. send ack back to the sender
+        bfclient_packet ackPkt = new bfclient_packet ();
+        ackPkt.setDstAddr  (srcAddr);
+        ackPkt.setDstPort  (srcPort);
+        ackPkt.setSrcAddr  (dstAddr);
+        ackPkt.setSrcPort  (dstPort);
+        ackPkt.setType     (bfclient_packet.M_USER_BASIC_TRANS_ACK);
+        ackPkt.setChunkId  (pkt.getChunkId ());
+            
+        bfclient_rentry nextHop = repo.searchRoutingTable (srcAddr, srcPort);
+        sendPacket (ackPkt.pack (), nextHop);
+        
+        // 2. send a report to the upper layer
+        bfclient_msg report = new bfclient_msg (bfclient_worker.M_RCV_SIMPLE_TRANSFER);
+        report.setBinData (pkt.getUserData ());
+        report.enqueue (Byte.toString (pkt.getChunkId ()));
+        bfclient_worker.getWorker ().enqueueMsg (report);
+    }
+    
+    void processRcvSimpleTransAck (bfclient_msg msg) {
+        
+        bfclient.logInfo ("processRcvSimpleTransAck");
+        
+        bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
+        int id = pkt.getChunkId ();
+        String idStr = Integer.toString (id);
+        
+        bfclient_msg rsp = new bfclient_msg (bfclient_worker.M_RCV_SIMPLE_TRANS_ACK);
+        rsp.enqueue (idStr);
+        bfclient_worker.getWorker ().enqueueMsg (rsp);
     }
     
     // msg is the packet to send, rentry is the matching routing table entry

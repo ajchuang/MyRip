@@ -14,7 +14,7 @@ public class bfclient_rentry {
     bfclient_rentry m_nextHop;
     
     int     m_intfIdx;  // which interface we send
-    boolean m_isOn;     // if the interface is on
+    //boolean m_isOn;     // if the interface is on
     boolean m_localIntf;
     
     long    m_lastUpdateTime;
@@ -78,7 +78,7 @@ public class bfclient_rentry {
         // conservative default value
         m_nextHop = null;
         m_intfIdx = -1;
-        m_isOn = false;
+        //m_isOn = false;
         
         m_lastUpdateTime = System.currentTimeMillis ();
     }
@@ -89,7 +89,7 @@ public class bfclient_rentry {
         m_localIntf = false;
         m_nextHop = null;
         m_intfIdx = -1;
-        m_isOn = false;
+        //m_isOn = false;
         
         m_lastUpdateTime = System.currentTimeMillis ();
     }
@@ -123,9 +123,9 @@ public class bfclient_rentry {
         //return m_isOn;
     }
     
-    public void setOn (boolean on) {
+    //public void setOn (boolean on) {
         //m_isOn = on;
-    }
+    //}
     
     public bfclient_rentry getNextHop () {
         return m_nextHop;
@@ -155,6 +155,7 @@ public class bfclient_rentry {
     public String toString () {
         
         String nextHop;
+        String linkCost;
         
         if (m_localIntf == true) {
             nextHop = "DirectLink\t";
@@ -165,18 +166,17 @@ public class bfclient_rentry {
                 nextHop = "Unknown next hop";
         }
         
-        
-        String linkCost;
         if (m_linkCost >= M_MAX_LINE_COST) {
             linkCost = "Inf";
         } else {
             linkCost = Float.toString (m_linkCost);
         }
         
-        return m_addr.getHostAddress () + ":" + m_port + "\t" + 
-               linkCost + "\t" + 
-               nextHop    + "\t" +
-               m_intfIdx;
+        return (m_addr.getHostAddress () + ":" + m_port + "\t" + 
+                linkCost     + "\t" + 
+                nextHop      + "\t" +
+                m_intfIdx    + "\t" +
+                (m_lastUpdateTime/1000));
     }
     
     public boolean compare (InetAddress addr, int port) {

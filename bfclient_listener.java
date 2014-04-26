@@ -106,11 +106,12 @@ public class bfclient_listener implements Runnable {
                 msg.enqueue (Integer.toString (inc.getSrcPort ()));
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_PING_RSP) {
-                bfclient.logInfo ("Receiving ping response");
-                bfclient.printMsg (
-                    "> ping response from " + 
-                    inc.getSrcAddr ().getHostAddress () + ":" + 
-                    Integer.toString (inc.getSrcPort ()));
+                
+                bfclient_msg msg = new bfclient_msg (bfclient_worker.M_RCV_PING_RSP);
+                msg.enqueue (inc.getSrcAddr ().getHostAddress ());
+                msg.enqueue (Integer.toString (inc.getSrcPort ()));
+                bfclient_worker.getWorker ().enqueueMsg (msg);
+                    
             } else if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE) {
                 bfclient.logInfo ("Receiving Router Update");
                 bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_REMOTE_VEC);
@@ -134,6 +135,15 @@ public class bfclient_listener implements Runnable {
             } else if (inc.getType () == bfclient_packet.M_LINK_DOWN) {
                 bfclient.logInfo ("Receiving link down");
                 bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_LINK_DOWN);
+                msg.setUserData ((Object)inc);
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_USER_BASIC_TRANS) {
+                bfclient.logInfo ("Receiving simple transmission packet");
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_SMPL_TRANS_DATA);
+                msg.setUserData ((Object)inc);
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_USER_BASIC_TRANS_ACK) {
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_SMPL_TRANS_ACK);
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_HOST_NOT_REACHABLE) {
