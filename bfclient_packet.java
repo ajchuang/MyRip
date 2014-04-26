@@ -5,6 +5,7 @@ import java.nio.*;
 public class bfclient_packet {
     
     public final static int M_PKT_HEADER_SIZE = 24;
+    public final static int M_PKT_CHKSUM_IDX  = 18;
     
     // Packet types
     // control packets
@@ -37,7 +38,7 @@ public class bfclient_packet {
     int         m_srcPort;
     byte        m_type;
     byte        m_chunkId;
-    byte        m_reserve_02;
+    byte        m_checksum;
     byte        m_pktId;
     int         m_dataLen;
     
@@ -159,7 +160,7 @@ public class bfclient_packet {
         byte[] destRawPort = ByteBuffer.allocate(4).putInt(m_dstPort).array ();
         byte[] srcRawAddr  = m_srcAddr.getAddress ();
         byte[] srcRawPort  = ByteBuffer.allocate(4).putInt(m_srcPort).array ();
-        byte[] control     = {m_type, (byte)0x00, (byte)0x00, m_pktId};
+        byte[] control     = {m_type, m_chunkId, (byte)0x00, m_pktId};
         
         byte[] rawDataLen;
         byte[] rawData;
@@ -167,11 +168,11 @@ public class bfclient_packet {
         
         if (m_userData != null) {
             rawData     = m_userData;
-            rawDataLen  = ByteBuffer.allocate(4).putInt(m_userData.length).array ();
+            rawDataLen  = ByteBuffer.allocate (4).putInt (m_userData.length).array ();
             packetTotalLen = M_PKT_HEADER_SIZE + m_userData.length;
         } else {
             rawData     = null;
-            rawDataLen  = ByteBuffer.allocate(4).putInt(0x00000000).array ();
+            rawDataLen  = ByteBuffer.allocate (4).putInt (0x00000000).array ();
             packetTotalLen = M_PKT_HEADER_SIZE;
         }
         
@@ -189,8 +190,38 @@ public class bfclient_packet {
         
         if (rawData != null)
             System.arraycopy (rawData,  0, packet, 24, rawData.length);
+            
+        // compute checksum
+        packet[M_PKT_CHKSUM_IDX] = computeCheckSum (packet, packet.length);
         
         return packet;
+    }
+    
+    public static boolean verifyChecksum (DatagramPacket pkt) {
+        
+        byte[] data = pkt.getData ();
+        int size = pkt.getLength ();
+        
+        byte chkSum = computeCheckSum (data, size);
+        if (chkSum == data[M_PKT_CHKSUM_IDX])
+            return true;
+        else
+            return false;
+    }
+    
+    public static byte computeCheckSum (byte[] pkt, int size) {
+        
+        byte checkSum = 0x00;
+        
+        for (int i=0; i<size; ++i) {
+            
+            if (i == M_PKT_CHKSUM_IDX)
+                checkSum ^= 0x00;
+            else
+                checkSum ^= pkt[i];
+        }
+        
+        return checkSum;
     }
     
     @Override

@@ -210,7 +210,17 @@ public class bfclient_worker implements Runnable {
         m_opRetryCnt++;
         
         if (m_opRetryCnt == 3) {
-            // stop retrying.
+            
+            bfclient.printMsg ("Chunk transfer failed - unable to transfer.");
+        
+            m_opTimer = null;
+            m_opCode = M_OP_NONE;
+        
+            // start the CLI thread
+            m_lock.lock ();
+            m_threadCond.signal ();
+            m_lock.unlock ();
+
         } else {
             // resend data and restart timer
         }

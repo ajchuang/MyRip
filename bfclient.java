@@ -3,6 +3,7 @@ import java.io.*;
 import java.util.logging.*;
 import java.security.*;
 import java.math.*;
+import java.text.*;
 
 
 // @lfred: Thread analysis: 
@@ -24,6 +25,9 @@ public class bfclient {
     public final static String M_LOG       = "LOG";
     public final static String M_HISTORY   = "HISTORY";
     public final static String M_IFCONFIG  = "IFCONFIG";
+    public final static String M_LS        = "LS";
+    public final static String M_CAT       = "CAT";
+    public final static String M_RM       = "RM";
     public final static String M_UPDATE_TO = "UPDATE_TIMER_TO";
     
     static String M_LOG_FILE;
@@ -167,6 +171,12 @@ public class bfclient {
                 processHistory ();
             } else if (cmd.equals (M_IFCONFIG)) {
                 processIfconfig ();
+            } else if (cmd.equals (M_LS)) {
+                processLs ();
+            } else if (cmd.equals (M_CAT)) {
+                processCat (toks);
+            } else if (cmd.equals (M_RM)) {
+                processRm (toks);
             } else {
                 System.out.println ("Unknown command: " + userInput);
             }
@@ -359,6 +369,74 @@ public class bfclient {
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
+        }
+    }
+    
+    void processLs () {
+        
+        File dir = new File ("./fs");
+        File listDir[] = dir.listFiles();
+        
+        for (int i = 0; i < listDir.length; i++) {
+            File cur = listDir[i];
+            if (cur.isFile ()) {
+                SimpleDateFormat format = new SimpleDateFormat ("MM/dd/yyyy HH:mm:ss");
+                printMsg (
+                    cur.getName () + "\t" + 
+                    "size: " + cur.length() + "\t" + 
+                    "Last Update:" + format.format (cur.lastModified ()));
+            }
+        }
+    }
+    
+    void processCat (String[] toks) {
+        
+        if (toks.length != 2) {
+            printMsg ("Command error");
+            printMsg ("cat [file name]");
+            return;
+        }
+        
+        int ci;
+        byte c;
+        
+        try {
+            String fName = "./fs/" + toks[1];
+            File f = new File (fName);
+            InputStream is = new FileInputStream (f);
+        
+            while ((ci = is.read ()) != -1) {
+                c = (byte)ci;
+                byte[] array = new byte[1];
+                array[0] = c;
+                System.out.print (new String (array)); 
+            }
+            
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+            printMsg ("\nRead file error");
+        }
+        
+        printMsg ("");
+        return;
+    }
+    
+    void processRm (String[] toks) {
+        
+        if (toks.length != 2) {
+            printMsg ("Command error");
+            printMsg ("cat [file name]");
+            return;
+        }
+        
+        String fName = "./fs/" + toks[1];
+        File f = new File (fName);
+        
+        if (f.delete ()) {
+            printMsg ("File (" + toks[1] + ") deleted");
+            return;
+        } else {
+            printMsg ("Error: File (" + toks[1] + ") NOT deleted");
         }
     }
     
