@@ -202,7 +202,7 @@ public class bfclient_repo {
     // bad method - just to simplify
     public void showRouteTable () {
         bfclient.printMsg ("Current Routing Table: ");
-        bfclient.printMsg ("Destination\t\tCost\tNexthop\t\t\tInterface");
+        bfclient.printMsg ("Destination\t\tCost\tNexthop\t\t\tIntf\tlastUpdate");
         
         synchronized (m_lock) {
             for (bfclient_rentry ent:m_rtable) {
@@ -302,8 +302,11 @@ public class bfclient_repo {
     public final boolean enableLocalLink (InetAddress addr, int port, float cost) {
         bfclient_rentry localLink = searchAllRoutingTable (addr, port);
         
-        if (localLink != null)
+        if (localLink != null) {
+            bfclient.logInfo ("enableLocalLink: " + cost);
             localLink.setCost (cost);
+            localLink.setUpdate ();
+        }
         
         return true;
     }

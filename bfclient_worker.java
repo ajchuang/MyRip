@@ -35,8 +35,10 @@ public class bfclient_worker implements Runnable {
     
     LinkedBlockingQueue<bfclient_msg> m_queue;
     java.util.Timer m_opTimer;
+    
     int   m_opCode;
     int   m_opRetryCnt;
+    bfclient_msg m_simpleTrans;
     
     // thread lock mechanism
     Lock m_lock = new ReentrantLock ();
@@ -169,12 +171,12 @@ public class bfclient_worker implements Runnable {
         String fName = repo.getFileName ();
         int chuckNum = repo.getChunkNum ();
         
-        bfclient_msg sTrans = new bfclient_msg (bfclient_msg.M_SND_SMPL_TRANS_DATA);
-        sTrans.enqueue (addr);
-        sTrans.enqueue (port);
-        sTrans.enqueue (fName);
-        sTrans.enqueue (Integer.toString (chuckNum));
-        bfclient_proc.getMainProc ().enqueueMsg (sTrans);
+        m_simpleTrans = new bfclient_msg (bfclient_msg.M_SND_SMPL_TRANS_DATA);
+        m_simpleTrans.enqueue (addr);
+        m_simpleTrans.enqueue (port);
+        m_simpleTrans.enqueue (fName);
+        m_simpleTrans.enqueue (Integer.toString (chuckNum));
+        bfclient_proc.getMainProc ().enqueueMsg (m_simpleTrans);
     }
     
     // @lfred: on receiving data
@@ -223,8 +225,20 @@ public class bfclient_worker implements Runnable {
 
         } else {
             // resend data and restart timer
+            m_opTimer = new java.util.Timer ("SimpleTrans");
+            m_opTimer.schedule (
+                (new TimerTask () {
+                    public void run () {
+                        bfclient_msg msg = 
+                            new bfclient_msg (
+                                bfclient_worker.M_RCV_SIMPLE_TRANS_TO);
+                        enqueueMsg (msg);
+                    }
+                }), (long) 1000);
+                
+            m_opCode = M_OP_SIMPLE_TRANS;
+            bfclient_proc.getMainProc ().enqueueMsg (m_simpleTrans);
         }
-        
     }
     
     void processPing (bfclient_msg msg) {

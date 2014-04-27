@@ -341,9 +341,6 @@ public class bfclient_proc implements Runnable {
                 repo.searchAllRoutingTable (newEnt.getAddr (), newEnt.getPort ());
             
             if (rEnt != null) {
-                
-                
-                
                 if (rEnt.getNextHop () != null && 
                     rEnt.getNextHop ().getAddr ().equals (srcAddr) && 
                     rEnt.getNextHop ().getPort () == srcPort) {
