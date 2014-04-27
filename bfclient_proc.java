@@ -153,8 +153,8 @@ public class bfclient_proc implements Runnable {
         // Step 2. send good items
         int localIfCnt = repo.getAllLocalIntfCnt ();
         
-        //byte[] rtb = repo.getFlatRoutingTable (lent);
-        byte[] rtb = repo.getFlatRoutingTable ();
+        
+        //byte[] rtb = repo.getFlatRoutingTable ();
         
         for (int i=0; i<localIfCnt; ++i) {
             bfclient.logInfo ("processUpdateTimeout - 1");
@@ -163,7 +163,7 @@ public class bfclient_proc implements Runnable {
             if (lent.getOn () == false)
                 continue;
             
-            //byte[] rtb = repo.getFlatRoutingTable (lent);
+            byte[] rtb = repo.getFlatRoutingTable (lent);
             
             bfclient_packet pkt = new bfclient_packet ();
             pkt.setDstAddr (lent.getAddr ());

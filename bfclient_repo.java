@@ -395,18 +395,34 @@ public class bfclient_repo {
     }
     
     // for given local entry, do 
-    public byte[] getFlatRoutingTable () { //bfclient_rentry local_if) {
+    public byte[] getFlatRoutingTable (bfclient_rentry local_if) {
         
         //if (local_if.getOn () == false) {
         //    return null;
         //}
         
+        InetAddress nextHopAddr = local_if.getAddr ();
+        int nextHopPort = local_if.getPort ();
+        
         byte[] out = new byte[m_rtable.size () * bfclient_rentry.M_DEFLATE_SIZE];
         int c_idx = 0;
         
         synchronized (m_lock) {
+            
             for (bfclient_rentry ent: m_rtable) {
-                byte[] current = ent.deflate ();
+                
+                byte[] current;
+                bfclient_rentry next = ent.getNextHop ();
+                
+                // This is poisoned reverse.
+                if (next != null && 
+                    next.getAddr ().equals (nextHopAddr) && 
+                    next.getPort () == nextHopPort) {
+                    current = ent.deflate (true);
+                } else {
+                    current = ent.deflate (false);
+                }
+                    
                 System.arraycopy (current, 0, out, c_idx, bfclient_rentry.M_DEFLATE_SIZE);
                 c_idx += bfclient_rentry.M_DEFLATE_SIZE;
             }

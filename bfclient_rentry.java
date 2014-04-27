@@ -190,15 +190,20 @@ public class bfclient_rentry {
         m_lastUpdateTime = System.currentTimeMillis ();
     }
     
-    public byte[] deflate () {
+    public byte[] deflate (boolean isSetToInf) {
         
         byte[] out = new byte[M_DEFLATE_SIZE];
         
         byte[] addr = m_addr.getAddress ();
         byte[] port = ByteBuffer.allocate(4).putInt(m_port).array ();
-        byte[] cost = ByteBuffer.allocate(4).putFloat (m_linkCost).array ();
+        byte[] cost;
         byte[] nextAddr;
         byte[] nextPort;
+        
+        if (isSetToInf)
+            cost = ByteBuffer.allocate(4).putFloat (M_MAX_LINE_COST).array ();
+        else
+            cost = ByteBuffer.allocate(4).putFloat (m_linkCost).array ();
         
         if (m_nextHop == null) {
             nextAddr = ByteBuffer.allocate(4).putInt(0).array ();
