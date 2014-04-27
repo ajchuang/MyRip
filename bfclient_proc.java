@@ -513,6 +513,9 @@ public class bfclient_proc implements Runnable {
             // locally stopped
             repo.diableLocalLink (addr, port);
             
+            // triggered update
+            processUpdateTimeout (msg);
+            
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
@@ -546,6 +549,9 @@ public class bfclient_proc implements Runnable {
             pkt.setType     (bfclient_packet.M_LINK_UP);
             pkt.setUserData (cArray);
             sendPacket (pkt.pack (), repo.searchAllRoutingTable (addr, port));
+            
+            // triggered update
+            processUpdateTimeout (msg);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
