@@ -27,11 +27,11 @@ public class bfclient {
     public final static String M_IFCONFIG  = "IFCONFIG";
     public final static String M_LS        = "LS";
     public final static String M_CAT       = "CAT";
-    public final static String M_RM       = "RM";
-    public final static String M_UPDATE_TO = "UPDATE_TIMER_TO";
+    public final static String M_RM        = "RM";
+    public final static String M_ADDDNS    = "ADDDNS";
     
-    static String M_LOG_FILE;
     
+    static String M_LOG_FILE;    
     static Logger sm_lgr;  
     static FileHandler sm_loggerFh;
     
@@ -370,6 +370,8 @@ public class bfclient {
         } catch (Exception e) {
             bfclient.logExp (e, false);
         }
+        
+        printMsg ("Log file: " + M_LOG_FILE);
     }
     
     void processLs () {
@@ -425,7 +427,7 @@ public class bfclient {
         
         if (toks.length != 2) {
             printMsg ("Command error");
-            printMsg ("cat [file name]");
+            printMsg ("rm [file name]");
             return;
         }
         
@@ -438,6 +440,9 @@ public class bfclient {
         } else {
             printMsg ("Error: File (" + toks[1] + ") NOT deleted");
         }
+    }
+    
+    void processDnsAdd (String[] toks) {
     }
     
     String localhostTranslate (String addr) {

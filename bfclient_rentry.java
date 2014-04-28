@@ -15,7 +15,7 @@ public class bfclient_rentry {
     
     int     m_intfIdx;  // which interface we send
     //boolean m_isOn;     // if the interface is on
-    boolean m_localIntf;
+    //boolean m_localIntf;
     
     long    m_lastUpdateTime;
     
@@ -68,7 +68,7 @@ public class bfclient_rentry {
         m_addr = addr;
         m_port = port;
         m_linkCost = linkCost;
-        m_localIntf = localIf;
+        //m_localIntf = localIf;
         
         // conservative default value
         m_nextHop = null;
@@ -81,7 +81,7 @@ public class bfclient_rentry {
     private bfclient_rentry () {
 
         // conservative default value
-        m_localIntf = false;
+        //m_localIntf = false;
         m_nextHop = null;
         m_intfIdx = -1;
         //m_isOn = false;
@@ -89,8 +89,27 @@ public class bfclient_rentry {
         m_lastUpdateTime = System.currentTimeMillis ();
     }
     
+    // @lfred: copy constructor for convinience
+    public bfclient_rentry (bfclient_rentry copyEnt) {
+        
+        m_addr = copyEnt.getAddr ();
+        m_port = copyEnt.getPort ();
+        m_linkCost = getCost ();
+        m_intfIdx = copyEnt.getIntfIdx ();
+        //m_localIntf = copyEnt.isLocalIf ();
+        m_lastUpdateTime = copyEnt.getLastUpdateTime ();
+        
+        if (m_nextHop == null)
+            m_nextHop = null;
+        else
+            m_nextHop = new bfclient_rentry (copyEnt.getNextHop ());
+    }
+    
     public boolean isLocalIf () {
-        return m_localIntf;
+        if (m_nextHop == null) {
+            return true;
+        } else
+            return false;
     }
     
     public int getIntfIdx () {
@@ -152,6 +171,7 @@ public class bfclient_rentry {
         String nextHop;
         String linkCost;
         
+        /*
         if (m_localIntf == true) {
             nextHop = "DirectLink\t";
         } else {
@@ -160,6 +180,13 @@ public class bfclient_rentry {
             else
                 nextHop = "Unknown next hop";
         }
+        */
+        
+        if (m_nextHop == null) {
+            nextHop = "DirectLink\t";
+        } else {
+            nextHop = m_nextHop.getAddr ().getHostAddress() + ":" + m_nextHop.getPort (); 
+        } 
         
         if (m_linkCost >= M_MAX_LINE_COST) {
             linkCost = "Inf";

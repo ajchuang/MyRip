@@ -23,6 +23,9 @@ public class bfclient_repo {
     ArrayList<bfclient_rentry> m_localEntryIdx;
     bfclient_rentry m_loopback;
     
+    // DNS table 
+    HashMap<String, bfclient_rentry> m_dnsTable;
+    
     // synchronous lock
     Object m_lock;
     
@@ -64,6 +67,7 @@ public class bfclient_repo {
         m_localEntryIdx = new ArrayList<bfclient_rentry> ();
         m_lock = new Object (); 
         m_simpleTranChunks = new LinkedList<bfclient_chunk> (); 
+        m_dnsTable = new HashMap <String, bfclient_rentry> ();
     }
     
     public void parseConfigFile () {
@@ -110,7 +114,7 @@ public class bfclient_repo {
                         Integer.toString (m_port), "0.0", true);
                 m_loopback.setNextHop (null);
                 
-                // loading mychunks
+                // loading my chunks
                 sm_simpleTransFileName += m_port;
                 
                 if (m_transFileName != null) {                    
@@ -155,9 +159,11 @@ public class bfclient_repo {
                 
                 // insert into routing table
                 bfclient_rentry ent = bfclient_rentry.rentryFactory (nAddr, nPort, nWeight, true);
-                //ent.setOn (true);
                 ent.setIntfIdx (intf++);
                 m_rtable.add (ent);
+                
+                // create another real instance for local i/f
+                bfclient_rentry local = new bfclient_rentry (ent);
                 m_localEntryIdx.add (ent);
             }
             
@@ -366,6 +372,26 @@ public class bfclient_repo {
             }
         }
     }
+    
+    public bfclient_rentry queryDnsTable (String dnsName) {
+        
+        if (m_dnsTable.containsKey (dnsName)) {
+            return null;
+        } else {
+            return m_dnsTable.get (dnsName);
+        }
+    }
+    
+    public boolean insertDnsTable (bfclient_rentry addr, String name) {
+        
+        if (m_dnsTable.containsKey (name)) {
+            return false;
+        } else {
+            m_dnsTable.put (name, addr);
+        }
+        
+        return true;
+    } 
     
     public void onRcvSimpleChunk (bfclient_chunk chk) {
         

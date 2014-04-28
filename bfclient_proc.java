@@ -6,8 +6,6 @@ import java.nio.*;
 
 public class bfclient_proc implements Runnable {
     
-    //final static byte M_PKT_TYPE_PING   = 0x01;
-
     static bfclient_proc sm_proc;
     
     LinkedBlockingQueue<bfclient_msg> m_queue;
@@ -264,8 +262,8 @@ public class bfclient_proc implements Runnable {
     }
     
     void processRemoteVec (bfclient_msg msg) {
-        bfclient.logInfo ("processRemoteVec - enter");
         
+        bfclient.logInfo ("processRemoteVec - enter");
         Object obj = msg.getUserData ();
         
         if (obj instanceof bfclient_packet == false) {
@@ -275,10 +273,11 @@ public class bfclient_proc implements Runnable {
         
         bfclient_repo repo = bfclient_repo.getRepo ();
         bfclient_packet inc = (bfclient_packet) obj;
+        
         InetAddress srcAddr = inc.getSrcAddr ();
         int srcPort = inc.getSrcPort ();
-        
         byte[] incTable = inc.getUserData ();
+        
         int numEntry = incTable.length / bfclient_rentry.M_DEFLATE_SIZE;
         bfclient.logInfo ("processRemoteVec: total entry size: " + numEntry);
         
@@ -293,8 +292,6 @@ public class bfclient_proc implements Runnable {
         } else if (srcEntry.getOn () == false) {
             bfclient.logInfo ("Receiving an UPDATE from DOWN LINK");
         }
-        
-        float linkCost = srcEntry.getCost ();
     
         //  for every entry in the packet
         //  if this entry is me 
@@ -313,6 +310,18 @@ public class bfclient_proc implements Runnable {
         //                      forget it
         //      else
         //          just add to the rtable
+        
+        // begin of debug code
+        bfclient.logInfo ("[Debug] " + srcAddr + ":" + srcPort);
+        for (int j=0; j<numEntry; ++j) {
+            byte[] curEntry = new byte[bfclient_rentry.M_DEFLATE_SIZE];
+            System.arraycopy (
+                incTable, j*bfclient_rentry.M_DEFLATE_SIZE, curEntry, 0, 
+                bfclient_rentry.M_DEFLATE_SIZE);
+            bfclient_rentry newEnt = bfclient_rentry.rentryFactory (curEntry);
+            bfclient.logErr ("[Debug] " + newEnt.toString ());
+        }
+        // end of debug code
         
         for (int i=0; i<numEntry; ++i) {
             
@@ -334,13 +343,14 @@ public class bfclient_proc implements Runnable {
                 continue;
             }
             
-            float newCost = linkCost + newEnt.getCost ();
-            
             // search all routing tables including down links
             bfclient_rentry rEnt = 
                 repo.searchAllRoutingTable (newEnt.getAddr (), newEnt.getPort ());
             
             if (rEnt != null) {
+                float linkCost = rEnt.getCost ();
+                float newCost = srcEntry.getCost () + newEnt.getCost ();
+                
                 if (rEnt.getNextHop () != null && 
                     rEnt.getNextHop ().getAddr ().equals (srcAddr) && 
                     rEnt.getNextHop ().getPort () == srcPort) {
@@ -373,11 +383,18 @@ public class bfclient_proc implements Runnable {
                         rEnt.setUpdate ();
                     } else {
                         // drop it (bad link or off link)
-                        bfclient.logErr ("new entry.5 - worse link, drop it");
+                        bfclient.logErr (
+                            "new entry.5 - worse link, drop it: " + 
+                            newCost + ":" + 
+                            linkCost);
                     }
                 }
             } else {
                 bfclient.logErr ("new entry.6 - unforeseen link is found");
+                float newCost = srcEntry.getCost () + newEnt.getCost ();
+                
+                if (newCost >= bfclient_rentry.M_MAX_LINE_COST)
+                    newCost = bfclient_rentry.M_MAX_LINE_COST;
 
                 newEnt.setCost (newCost);
                 newEnt.setNextHop (nextHop);
