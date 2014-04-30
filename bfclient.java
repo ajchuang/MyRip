@@ -13,6 +13,8 @@ import java.text.*;
 // extra feature: ping, traceroute
 public class bfclient {
     
+    public final int M_MAX_FILE_SIZE = 61440;
+    
     public final static String M_LINKDOWN  = "LINKDOWN";
     public final static String M_LINKUP    = "LINKUP";
     public final static String M_SHOWRT    = "SHOWRT";
@@ -28,8 +30,6 @@ public class bfclient {
     public final static String M_LS        = "LS";
     public final static String M_CAT       = "CAT";
     public final static String M_RM        = "RM";
-    public final static String M_ADDDNS    = "ADDDNS";
-    
     
     static String M_LOG_FILE;    
     static Logger sm_lgr;  
@@ -197,6 +197,8 @@ public class bfclient {
             return;
         }
         
+        bfclient.logInfo ("processLinkDown");
+        
         String addr = toks[1];
         String port = toks[2];
         
@@ -210,11 +212,14 @@ public class bfclient {
     }
     
     void processLinkUp (String[] toks) {
+        
         if (toks.length != 4) {
             printMsg ("Command format error.");
             printMsg ("[Usage] LINKUP [ip] [port] [weight]");
             return;
         }
+        
+        bfclient.logInfo ("processLinkUp");
         
         String addr = toks[1];
         String port = toks[2];
@@ -262,7 +267,6 @@ public class bfclient {
             printMsg ("The file size," + f.length () + ", is incorrect.");
             return;
         } 
-        
         
         String addr = toks[1];
         String port = toks[2];

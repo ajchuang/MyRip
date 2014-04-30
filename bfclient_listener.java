@@ -153,7 +153,9 @@ public class bfclient_listener implements Runnable {
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_HOST_NOT_REACHABLE) {
-                bfclient.printMsg ("packet sent unreachable: " + inc.getSrcAddr ());
+                bfclient.printMsg (
+                    "\npacket unreachable: " + 
+                    inc.getSrcAddr () + ":" + inc.getSrcPort () + "\n");
             } else if (inc.getType () == bfclient_packet.M_HOST_UNKNOWN_PACKET) {
                 // debuggin - stop now
                 bfclient.logInfo ("Receiving unknown packet error");

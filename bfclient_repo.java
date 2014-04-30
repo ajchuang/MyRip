@@ -163,8 +163,7 @@ public class bfclient_repo {
                 m_rtable.add (ent);
                 
                 // create another real instance for local i/f
-                bfclient_rentry local = new bfclient_rentry (ent);
-                m_localEntryIdx.add (ent);
+                m_localEntryIdx.add (new bfclient_rentry (ent));
             }
             
             br.close ();
@@ -271,49 +270,90 @@ public class bfclient_repo {
     
     public final boolean diableLocalLink (InetAddress addr, int port) {
         
-        bfclient_rentry localLink = searchRoutingTable (addr, port);
-        int idx = getLocalIntfIdx (addr, port);
+        bfclient.logInfo ("diableLocalLink: " + addr + ":" + port);
+        printRoutingTable ();
         
-        if (localLink == null || localLink.isLocalIf () == false) {
+        // the entry in the routing table
+        bfclient_rentry localLink = searchRoutingTable (addr, port);
+        
+        // the entry in the local interface
+        int idx = getLocalIntfIdx (addr, port);
+        bfclient_rentry localIntf = getLocalIntfEntry (idx);
+        
+        if (localIntf == null || localLink == null || localLink.isLocalIf () == false) {
             bfclient.logErr ("Local link not found: " + addr + ":" + port);
             return false;
         }
         
         synchronized (m_lock) {
             
-            //localLink.setOn (false);
-            localLink.setCost (bfclient_rentry.M_MAX_LINE_COST);
+            // set the link to INF for local intf
+            localIntf.setCost (bfclient_rentry.M_MAX_LINE_COST);
             
-            ListIterator<bfclient_rentry> lstItr =  m_rtable.listIterator ();
+            // set the link to INF for routing table entry if it's directlink
+            if (localLink.getNextHop () == null)
+                localLink.setCost (bfclient_rentry.M_MAX_LINE_COST);
             
-            // remove all entries starting from locallink
-            while (lstItr.hasNext () == true) {
+            // set all entries starting from the disabled link to INF
+            for (bfclient_rentry ent: m_rtable) {
+                bfclient_rentry next = ent.getNextHop ();
                 
-                bfclient_rentry ent = lstItr.next ();
-                
-                if (ent.isLocalIf () == false && 
-                    ent.getIntfIdx () == idx) {
+                if (next != null &&
+                    next.getAddr ().equals (addr) && 
+                    next.getPort () == port) {
+                        
+                    // before we set this link to INF, check if a local link is usable.
+                    bfclient_rentry alterLocal = 
+                        getLocalIntfEntry (getLocalIntfIdx (ent.getAddr (), ent.getPort ()));
                     
-                    // remove the entry
-                    // lstItr.remove ();
-                    // ent.setOn (false);
-                    ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                    if (alterLocal != null && 
+                        alterLocal.getCost () < bfclient_rentry.M_MAX_LINE_COST) {
+                        // use this local link instead
+                        ent.setCost (alterLocal.getCost ());
+                        ent.setNextHop (null);
+                        ent.setIntfIdx (alterLocal.getIntfIdx ());
+                        ent.setUpdate ();
+                    } else {
+                        // set to INF
+                        ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                    }
                 }
             }
         }
         
+        printRoutingTable ();
         return true;
     }
     
     public final boolean enableLocalLink (InetAddress addr, int port, float cost) {
-        bfclient_rentry localLink = searchAllRoutingTable (addr, port);
         
-        if (localLink != null) {
-            bfclient.logInfo ("enableLocalLink: " + cost);
-            localLink.setCost (cost);
-            localLink.setUpdate ();
+        printRoutingTable ();
+        
+        synchronized (m_lock) { 
+            bfclient_rentry localIntf = getLocalIntfEntry (getLocalIntfIdx (addr, port));
+            bfclient_rentry localLink = searchAllRoutingTable (addr, port);
+        
+            if (localIntf != null) {
+                bfclient.logInfo ("enableLocalLink.1");
+                localIntf.setCost (cost);
+                localIntf.setUpdate ();
+            }
+        
+            if (localLink != null) {
+                bfclient.logInfo ("enableLocalLink: " + cost + ":" + localLink.getCost ());
+            
+                // if the locallink is better
+                if (localLink.getCost () > cost) {
+                    bfclient.logInfo ("enableLocalLink.2");
+                    localLink.setCost (cost);
+                    localLink.setUpdate ();
+                    localLink.setNextHop (null);
+                    localLink.setIntfIdx (localIntf.getIntfIdx ());
+                }
+            }
         }
         
+        printRoutingTable ();
         return true;
     }
     
@@ -460,5 +500,20 @@ public class bfclient_repo {
         return out;
     }
     
+    void printRoutingTable () {
+        
+        bfclient.logInfo ("printRoutingTable Begin");
+        bfclient.logInfo ("Local Intf");
+        for (bfclient_rentry ent:m_localEntryIdx) {
+            bfclient.logInfo (ent.toString ());
+        }
+        
+        bfclient.logInfo ("All RTable");
+        for (bfclient_rentry ent:m_rtable) {
+            bfclient.logInfo (ent.toString ());
+        }
+        
+        bfclient.logInfo ("printRoutingTable End");
+    }
     
 }

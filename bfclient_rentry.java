@@ -94,7 +94,7 @@ public class bfclient_rentry {
         
         m_addr = copyEnt.getAddr ();
         m_port = copyEnt.getPort ();
-        m_linkCost = getCost ();
+        m_linkCost = copyEnt.getCost ();
         m_intfIdx = copyEnt.getIntfIdx ();
         //m_localIntf = copyEnt.isLocalIf ();
         m_lastUpdateTime = copyEnt.getLastUpdateTime ();

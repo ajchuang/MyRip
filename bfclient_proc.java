@@ -151,13 +151,11 @@ public class bfclient_proc implements Runnable {
         // Step 2. send good items
         int localIfCnt = repo.getAllLocalIntfCnt ();
         
-        
-        //byte[] rtb = repo.getFlatRoutingTable ();
-        
         for (int i=0; i<localIfCnt; ++i) {
             bfclient.logInfo ("processUpdateTimeout - 1");
-            bfclient_rentry lent = repo.getLocalIntfEntry (i);
             
+            // search local 'active' interface 
+            bfclient_rentry lent = repo.getLocalIntfEntry (i);
             if (lent.getOn () == false)
                 continue;
             
@@ -313,6 +311,7 @@ public class bfclient_proc implements Runnable {
         
         // begin of debug code
         bfclient.logInfo ("[Debug] " + srcAddr + ":" + srcPort);
+        
         for (int j=0; j<numEntry; ++j) {
             byte[] curEntry = new byte[bfclient_rentry.M_DEFLATE_SIZE];
             System.arraycopy (
@@ -370,10 +369,24 @@ public class bfclient_proc implements Runnable {
                     // ignore if the new entry's next hop is myself
                     bfclient.logErr ("new entry.2 - next hop is me, dont update - split horizon");
                 } else {
+                    
+                    bfclient_rentry localEnt = 
+                        repo.getLocalIntfEntry (
+                            repo.getLocalIntfIdx (newEnt.getAddr (), newEnt.getPort ()));
+                    
                     // if not the next hop 
                     if (newCost >= bfclient_rentry.M_MAX_LINE_COST) {
                         bfclient.logErr ("new entry.3 - this link is down");
-                        rEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                        
+                        // search local entry first - incase a local link becomes better again
+                        if (localEnt != null && localEnt.getCost () < bfclient_rentry.M_MAX_LINE_COST) {
+                            rEnt.setCost (localEnt.getCost ());
+                            rEnt.setNextHop (null);
+                            rEnt.setIntfIdx (localEnt.getIntfIdx ());
+                            rEnt.setUpdate ();
+                        } else {
+                            rEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                        }
                     } else if (newCost < linkCost) {
                         // Update the rtable
                         bfclient.logErr ("new entry.4 - better link is found");
@@ -540,7 +553,8 @@ public class bfclient_proc implements Runnable {
     
     void processLinkUp (bfclient_msg msg) {
         try {
-            bfclient.logInfo ("processLinkDown");
+            bfclient.logInfo ("processLinkUp");
+            
             bfclient_repo repo = bfclient_repo.getRepo ();
             
             String destAddrStr = msg.dequeue ();
