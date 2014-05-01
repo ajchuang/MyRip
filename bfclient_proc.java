@@ -265,7 +265,7 @@ public class bfclient_proc implements Runnable {
     }
     
     void processRemoteVec (bfclient_msg msg) {
-        
+
         boolean urgent = false;
         
         bfclient.logInfo ("processRemoteVec - enter");
@@ -569,7 +569,7 @@ public class bfclient_proc implements Runnable {
             repo.diableLocalLink (addr, port);
             
             // triggered update
-            processUpdateTimeout (msg, true);
+            processUpdateTimeout (msg, false);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
@@ -607,7 +607,7 @@ public class bfclient_proc implements Runnable {
             sendPacket (pkt.pack (), repo.searchAllRoutingTable (addr, port));
             
             // triggered update
-            processUpdateTimeout (msg, true);
+            processUpdateTimeout (msg, false);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
