@@ -694,6 +694,14 @@ public class bfclient_proc implements Runnable {
         
         bfclient.logInfo ("processRcvSimpleTrans");
         bfclient_repo repo = bfclient_repo.getRepo ();
+        
+        // random drop packets
+        if (repo.getReliableL2 () == false &&
+            Math.random () % 2 == 0) {
+            bfclient.logInfo ("Packet dropped - randomly.");
+            return;
+        }
+        
         bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
         InetAddress srcAddr = pkt.getSrcAddr ();
         int srcPort = pkt.getSrcPort ();
