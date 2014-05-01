@@ -12,6 +12,7 @@ public class bfclient_repo {
     int m_port;
     int m_timeout;
     String m_configFileName;
+    boolean m_reliableL2;
     
     // for simple trans
     String m_transFileName;
@@ -68,6 +69,7 @@ public class bfclient_repo {
         m_lock = new Object (); 
         m_simpleTranChunks = new LinkedList<bfclient_chunk> (); 
         m_dnsTable = new HashMap <String, bfclient_rentry> ();
+        m_reliableL2 = true;
     }
     
     public void parseConfigFile () {
@@ -516,6 +518,14 @@ public class bfclient_repo {
             
             bfclient.logInfo ("printRoutingTable End");
         }
+    }
+    
+    public void setReliableL2 (boolean r) {
+        m_reliableL2 = r;
+    }
+    
+    public boolean getReliableL2 () {
+        return m_reliableL2;
     }
     
 }

@@ -663,6 +663,13 @@ public class bfclient_proc implements Runnable {
             insputStream.read (fData);
             insputStream.close ();
             
+            if (bfclient_repo.getRepo ().getReliableL2 () == false) {
+                if (Math.random () % 2 == 0) {
+                    bfclient.logInfo ("Packet dropped - randomly.");
+                    return;
+                }
+            }
+            
             bfclient_packet pkt = new bfclient_packet ();
             pkt.setDstAddr  (addr);
             pkt.setDstPort  (port);

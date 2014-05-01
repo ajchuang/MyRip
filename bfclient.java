@@ -30,6 +30,7 @@ public class bfclient {
     public final static String M_LS        = "LS";
     public final static String M_CAT       = "CAT";
     public final static String M_RM        = "RM";
+    public final static String M_RELIABE   = "RELIABLE";
     
     static String M_LOG_FILE;    
     static Logger sm_lgr;  
@@ -177,6 +178,8 @@ public class bfclient {
                 processCat (toks);
             } else if (cmd.equals (M_RM)) {
                 processRm (toks);
+            } else if (cmd.equals (M_RELIABE)) {
+                processReliable (toks);
             } else {
                 System.out.println ("Unknown command: " + userInput);
             }
@@ -443,6 +446,22 @@ public class bfclient {
             return;
         } else {
             printMsg ("Error: File (" + toks[1] + ") NOT deleted");
+        }
+    }
+    
+    void processReliable (String[] toks) {
+        
+        if (toks.length != 2) {
+            printMsg ("Command format error");
+            printMsg ("reliable on or reliable off");
+            return;
+        }
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        if (toks[1].equals ("on")) {
+            repo.setReliableL2 (true);
+        } else {
+            repo.setReliableL2 (false);
         }
     }
     
