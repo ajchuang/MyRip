@@ -17,6 +17,7 @@ public class bfclient_packet {
     
     // routing packets
     public final static byte M_ROUTER_UPDATE = 0x10;
+    public final static byte M_ROUTER_UPDATE_URG = 0x11;
     
     // user packet
     public final static byte M_USER_DATA = 0x20;

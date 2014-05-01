@@ -117,10 +117,15 @@ public class bfclient_listener implements Runnable {
                 msg.enqueue (Integer.toString (inc.getSrcPort ()));
                 bfclient_worker.getWorker ().enqueueMsg (msg);
                     
-            } else if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE) {
+            } else if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE || 
+                       inc.getType () == bfclient_packet.M_ROUTER_UPDATE_URG) {
                 bfclient.logInfo ("Receiving Router Update");
                 bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_REMOTE_VEC);
                 msg.setUserData ((Object)inc);
+                if (inc.getType () == bfclient_packet.M_ROUTER_UPDATE)
+                    msg.enqueue ("NORMAL");
+                else
+                    msg.enqueue ("URGENT");
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
             } else if (inc.getType () == bfclient_packet.M_TROUTE_REQ) {
                 bfclient.logInfo ("Receiving trace route req");

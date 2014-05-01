@@ -70,7 +70,7 @@ public class bfclient_proc implements Runnable {
                     break;
                     
                     case bfclient_msg.M_UPDATE_TIMER_TO:
-                        processUpdateTimeout (msg);
+                        processUpdateTimeout (msg, false);
                     break;
                     
                     case bfclient_msg.M_SEND_PING_REQ:
@@ -136,7 +136,7 @@ public class bfclient_proc implements Runnable {
         }
     }
     
-    public void processUpdateTimeout (bfclient_msg msg) {
+    public void processUpdateTimeout (bfclient_msg msg, boolean isUrgent) {
         
         bfclient.logInfo ("processUpdateTimeout");
         
@@ -166,7 +166,12 @@ public class bfclient_proc implements Runnable {
             pkt.setDstPort (lent.getPort ());
             pkt.setSrcAddr (repo.getLocalAddr ());
             pkt.setSrcPort (repo.getPort ());
-            pkt.setType (bfclient_packet.M_ROUTER_UPDATE);
+            
+            if (isUrgent)
+                pkt.setType (bfclient_packet.M_ROUTER_UPDATE_URG);
+            else
+                pkt.setType (bfclient_packet.M_ROUTER_UPDATE);
+                
             pkt.setUserData (rtb);
             
             sendPacket (pkt.pack (), lent);
@@ -261,7 +266,10 @@ public class bfclient_proc implements Runnable {
     
     void processRemoteVec (bfclient_msg msg) {
         
+        boolean urgent = false;
+        
         bfclient.logInfo ("processRemoteVec - enter");
+        
         Object obj = msg.getUserData ();
         
         if (obj instanceof bfclient_packet == false) {
@@ -269,7 +277,16 @@ public class bfclient_proc implements Runnable {
             return;
         }
         
+        //String urg = msg.dequeue ();
+        //if (urg.equals ("URGENT"))
+        //    urgent = true;
+        //else
+        //    urgent = false;
+        
         bfclient_repo repo = bfclient_repo.getRepo ();
+        bfclient.logErr ("processRemoteVec Before");
+        repo.printRoutingTable ();
+        
         bfclient_packet inc = (bfclient_packet) obj;
         
         InetAddress srcAddr = inc.getSrcAddr ();
@@ -415,6 +432,14 @@ public class bfclient_proc implements Runnable {
                 repo.addRoutingEntry (newEnt);
             }
         }
+        
+        bfclient.logErr ("processRemoteVec After");
+        repo.printRoutingTable ();
+        
+        // fast change propagation
+        if (urgent) {
+            processUpdateTimeout (msg, true);
+        }
     }
     
     void processForward (bfclient_msg msg) {
@@ -544,7 +569,7 @@ public class bfclient_proc implements Runnable {
             repo.diableLocalLink (addr, port);
             
             // triggered update
-            processUpdateTimeout (msg);
+            processUpdateTimeout (msg, true);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);
@@ -582,7 +607,7 @@ public class bfclient_proc implements Runnable {
             sendPacket (pkt.pack (), repo.searchAllRoutingTable (addr, port));
             
             // triggered update
-            processUpdateTimeout (msg);
+            processUpdateTimeout (msg, true);
             
         } catch (Exception e) {
             bfclient.logExp (e, false);

@@ -500,20 +500,22 @@ public class bfclient_repo {
         return out;
     }
     
-    void printRoutingTable () {
+    public void printRoutingTable () {
         
-        bfclient.logInfo ("printRoutingTable Begin");
-        bfclient.logInfo ("Local Intf");
-        for (bfclient_rentry ent:m_localEntryIdx) {
-            bfclient.logInfo (ent.toString ());
+        synchronized (m_lock) {
+            bfclient.logInfo ("printRoutingTable Begin");
+            bfclient.logInfo ("Local Intf");
+            for (bfclient_rentry ent:m_localEntryIdx) {
+                bfclient.logInfo (ent.toString ());
+            }
+            
+            bfclient.logInfo ("All RTable");
+            for (bfclient_rentry ent:m_rtable) {
+                bfclient.logInfo (ent.toString ());
+            }
+            
+            bfclient.logInfo ("printRoutingTable End");
         }
-        
-        bfclient.logInfo ("All RTable");
-        for (bfclient_rentry ent:m_rtable) {
-            bfclient.logInfo (ent.toString ());
-        }
-        
-        bfclient.logInfo ("printRoutingTable End");
     }
     
 }
