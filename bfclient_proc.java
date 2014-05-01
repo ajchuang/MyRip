@@ -663,24 +663,24 @@ public class bfclient_proc implements Runnable {
             insputStream.read (fData);
             insputStream.close ();
             
-            if (bfclient_repo.getRepo ().getReliableL2 () == false) {
-                if (Math.random () % 2 == 0) {
-                    bfclient.logInfo ("Packet dropped - randomly.");
-                    return;
-                }
+            // random drop packets
+            if (bfclient_repo.getRepo ().getReliableL2 () == false &&
+                Math.random () % 2 == 0) {
+                bfclient.logInfo ("Packet dropped - randomly.");
+                return;
+            } else {            
+                bfclient_packet pkt = new bfclient_packet ();
+                pkt.setDstAddr  (addr);
+                pkt.setDstPort  (port);
+                pkt.setSrcAddr  (myAddr);
+                pkt.setSrcPort  (myPort);
+                pkt.setType     (bfclient_packet.M_USER_BASIC_TRANS);
+                pkt.setChunkId  (cId);
+                pkt.setUserData (fData); 
+                
+                bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
+                sendPacket (pkt.pack (), nextHop);
             }
-            
-            bfclient_packet pkt = new bfclient_packet ();
-            pkt.setDstAddr  (addr);
-            pkt.setDstPort  (port);
-            pkt.setSrcAddr  (myAddr);
-            pkt.setSrcPort  (myPort);
-            pkt.setType     (bfclient_packet.M_USER_BASIC_TRANS);
-            pkt.setChunkId  (cId);
-            pkt.setUserData (fData); 
-            
-            bfclient_rentry nextHop = repo.searchRoutingTable (addr, port);
-            sendPacket (pkt.pack (), nextHop);
             
         } catch (Exception e) {
             bfclient.logErr ("Error while sending packet");
