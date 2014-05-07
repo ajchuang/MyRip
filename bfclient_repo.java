@@ -244,7 +244,7 @@ public class bfclient_repo {
         }
         
         synchronized (m_lock) {
-            for (bfclient_rentry ent:m_rtable) {
+            for (bfclient_rentry ent: m_rtable) {
                 if (ent.getOn () == true && 
                     ent.compare (addr, port) == true) {
                     ret = ent;
@@ -404,13 +404,69 @@ public class bfclient_repo {
         long now = System.currentTimeMillis ();
         
         synchronized (m_lock) {
+
             for (bfclient_rentry ent: m_rtable) {
                 
                 if ((ent.getOn ()) && 
                     (now - ent.getLastUpdateTime ()) > 3 * 1000 * m_timeout) {
-                    bfclient.logErr ("Link: " + ent + " expired.");
-                    ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
-                } 
+                    
+                    if (ent.getNextHop () == null) {
+                        
+                        // disable the "local" link
+                        ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                        bfclient.logErr ("Link: " + ent + " expired.");
+                        
+                    } else {
+                        
+                        // search the local link to see if there is an alternative
+                        bfclient_rentry alternativeLocal = 
+                            getLocalIntfEntry (
+                                getLocalIntfIdx (ent.getAddr (), ent.getPort ()));
+                        
+                        if (alternativeLocal != null && 
+                            alternativeLocal.getCost () < bfclient_rentry.M_MAX_LINE_COST) {
+                        
+                            ent.setCost (alternativeLocal.getCost ());
+                            ent.setNextHop (null);
+                            ent.setIntfIdx (alternativeLocal.getIntfIdx ());
+                            bfclient.logErr ("Link: " + ent + " expired, but modified");
+                        } else {
+                            bfclient.logErr ("Link: " + ent + " expired.");
+                            ent.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                        }
+                    }
+                    
+                    // ripple the change to all the other entries   
+                    for (bfclient_rentry disEnt: m_rtable) {
+                        
+                        // check if the nexthop is the disabled link
+                        bfclient_rentry nxt = disEnt.getNextHop ();
+                        
+                        if (nxt != null &&
+                            nxt.getAddr ().equals (ent.getAddr ()) &&
+                            nxt.getPort () == ent.getPort ()) {
+                                
+                            // 1st - check if there is an alternative local interface
+                            bfclient_rentry alternativeLocal = 
+                                getLocalIntfEntry (
+                                    getLocalIntfIdx (disEnt.getAddr (), disEnt.getPort ()));
+                                    
+                            if (alternativeLocal == null || 
+                                alternativeLocal.getCost () == bfclient_rentry.M_MAX_LINE_COST) {
+                                    
+                                // next hop is the node we disabled - mark this disabled as well
+                                disEnt.setCost (bfclient_rentry.M_MAX_LINE_COST);
+                                bfclient.logErr ("Link: " + disEnt + " also expired.");
+                            } else {
+                                // some local link is enabled
+                                disEnt.setCost (alternativeLocal.getCost ());
+                                disEnt.setNextHop (null);
+                                disEnt.setIntfIdx (alternativeLocal.getIntfIdx ());
+                                bfclient.logErr ("Link: " + disEnt + " also expired, but modified");
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -94,6 +94,14 @@ public class bfclient {
             return;
         }
         
+        // install the shutdown hook for knowing the log at the end
+        Runtime.getRuntime().addShutdownHook (new Thread (new Runnable() {
+            @Override
+            public void run() {
+                System.out.println ("\n*** Log file @ " + M_LOG_FILE + " ***\n");
+            }
+        }){});
+        
         // create repo & parsing config
         String config = args[0];
         bfclient_repo repo = bfclient_repo.createRepo (config);
@@ -239,6 +247,7 @@ public class bfclient {
     }
     
     void processShowRt (String[] toks) {
+        printMsg ("Current time: " + (long)(System.currentTimeMillis ()/1000));
         bfclient_repo.getRepo ().showRouteTable ();
     }
     

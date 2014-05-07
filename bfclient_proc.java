@@ -142,7 +142,10 @@ public class bfclient_proc implements Runnable {
         
         // send whole vector to neighbor
         bfclient_repo repo = bfclient_repo.getRepo ();
+        repo.printRoutingTable ();
+        
         InetAddress hostAddr = repo.getLocalAddr ();
+        bfclient.logInfo ("before processUpdateTimeout");
         int hostPort = repo.getPort ();
         
         // Step 1. disable expired items
@@ -152,14 +155,17 @@ public class bfclient_proc implements Runnable {
         int localIfCnt = repo.getAllLocalIntfCnt ();
         
         for (int i=0; i<localIfCnt; ++i) {
-            bfclient.logInfo ("processUpdateTimeout - 1");
             
-            // search local 'active' interface 
+            // search local 'active' interface --> dont use local database (misleading)
             bfclient_rentry lent = repo.getLocalIntfEntry (i);
-            if (lent.getOn () == false)
+            bfclient_rentry rent = repo.searchRoutingTable (lent.getAddr (), lent.getPort());
+            
+            if (rent == null || rent.getNextHop () != null)
                 continue;
             
-            byte[] rtb = repo.getFlatRoutingTable (lent);
+            bfclient.logInfo ("processUpdateTimeout: " + rent);
+            
+            byte[] rtb = repo.getFlatRoutingTable (rent);
             
             bfclient_packet pkt = new bfclient_packet ();
             pkt.setDstAddr (lent.getAddr ());
@@ -174,8 +180,11 @@ public class bfclient_proc implements Runnable {
                 
             pkt.setUserData (rtb);
             
-            sendPacket (pkt.pack (), lent);
+            sendPacket (pkt.pack (), rent);
         }
+        
+        bfclient.logInfo ("after processUpdateTimeout");
+        repo.printRoutingTable ();
     }
     
     void processPing (bfclient_msg msg) {
@@ -385,6 +394,7 @@ public class bfclient_proc implements Runnable {
                            newEnt.getNextHop ().getPort () == repo.getPort ()) {
                     // ignore if the new entry's next hop is myself
                     bfclient.logErr ("new entry.2 - next hop is me, dont update - split horizon");
+                    
                 } else {
                     
                     bfclient_rentry localEnt = 
