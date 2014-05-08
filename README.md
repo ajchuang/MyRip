@@ -82,12 +82,14 @@ B) Running environment:
 
 C) How to run:
 Basically, I follow the requirements. 
-To provide a more modular testing mechanism, I organize the test 
-cases in the ./config folder. In the cofig folder, there are a few
-well-written test cases. You can make use of them to test the pro-
-gram. 
+1. To build the whole thing. Just use ./make.sh @Unix/Linux/OS X.
+2. If you're using windows, just need 'javac *.java' and mkdir log.
 
-Therefore, an example command would be
+3. To provide a more modular testing mechanism, I organize the test 
+   cases in the ./config folder. In the cofig folder, there are a few
+   well-written test cases. You can make use of them to test the pro-
+   gram. Therefore, an example command would be
+
 ** java bfclient ./config/[Your config folder]/[Your config file]
     
 D)  Supported commands
