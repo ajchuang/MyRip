@@ -4,6 +4,7 @@ import java.util.logging.*;
 import java.security.*;
 import java.math.*;
 import java.text.*;
+import java.net.*;
 
 
 // @lfred: Thread analysis: 
@@ -284,13 +285,41 @@ public class bfclient {
         String port = toks[2];
         printMsg ("Starting to transfer to " + addr + ":" + port);
         
-        // syntax sugar
-        addr = localhostTranslate (addr);
-        
-        bfclient_msg req = new bfclient_msg (bfclient_worker.M_START_SIMPLE_TRANSFER);
-        req.enqueue (addr);
-        req.enqueue (port);
-        bfclient_worker.getWorker ().assignWork (req);
+        try {
+            InetAddress dstAddr = InetAddress.getByName (addr);
+            int dstPort = Integer.parseInt (port);
+            bfclient_rentry rent = repo.searchRoutingTable (dstAddr, dstPort);
+            
+            if (rent != null) {
+                bfclient_rentry next = rent.getNextHop ();
+                
+                if (next == null) {
+                    printMsg ("The destination address is a direct link.");
+                } else {
+                    printMsg (
+                        "The chunk, " + repo.getChunkNum () + 
+                        " of the file, " + repo.getFileName () + 
+                        " , is transferring to " + next.getAddr ().getHostAddress () + 
+                        ":" + next.getPort ()); 
+                }
+                
+            } else {
+                printMsg ("The destination address is unreachable.");
+                return;
+            }
+            
+            
+            
+            // syntax sugar
+            addr = localhostTranslate (addr);
+            
+            bfclient_msg req = new bfclient_msg (bfclient_worker.M_START_SIMPLE_TRANSFER);
+            req.enqueue (addr);
+            req.enqueue (port);
+            bfclient_worker.getWorker ().assignWork (req);
+        } catch (Exception e) {
+            logExp (e, false);
+        }
     }
     
     void processPing (String[] toks) {
