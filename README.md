@@ -2,6 +2,16 @@ MyRip (Jen-Chieh Huang, jh3478)
 =====
 A funny RIP implementation for CompNet PA2
 
+!!! IMPORTANT !!!
+Im ny implementation, to make the test easier,
+I will translate the "LOOPBACK" address to the outgoing address.
+This is to avoid the config file inconsistency - that is, 
+the default routing info is written with a mix of 127.0.0.1 and
+general outgoing IPs.
+
+So if you test with "localhost" or "127.0.0.1", you will see
+that the address is translated.
+
 A) Code architecture:
 The bfclient is designed in a multi-thread and event-based arch.
 I'll introduce each thread.
