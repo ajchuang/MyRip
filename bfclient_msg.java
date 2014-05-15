@@ -32,6 +32,11 @@ public class bfclient_msg {
     public final static int M_SND_SMPL_TRANS_ACK   = 72;
     public final static int M_RCV_SMPL_TRANS_ACK   = 73;
     
+    public final static int M_SND_DISCOVER_REQ    = 80;
+    public final static int M_RCV_DISCOVER_REQ    = 81;
+    public final static int M_RCV_DISCOVER_ACK    = 82;
+    public final static int M_RCV_DISCOVER_NAK    = 83;
+    
     
     int m_type;
     LinkedList<String> m_data;

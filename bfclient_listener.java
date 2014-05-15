@@ -152,11 +152,24 @@ public class bfclient_listener implements Runnable {
                 bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_SMPL_TRANS_DATA);
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
+            
             } else if (inc.getType () == bfclient_packet.M_USER_BASIC_TRANS_ACK) {
                 bfclient.logInfo ("Data ACK received.");
                 bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_SMPL_TRANS_ACK);
                 msg.setUserData ((Object)inc);
                 bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_DISCOVER_REQ) {
+                bfclient.logInfo ("Receiving M_DISCOVER_REQ");
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_DISCOVER_REQ);
+                msg.setUserData ((Object)inc);
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_DISCOVER_ACK) {
+                bfclient.logInfo ("Receiving M_DISCOVER_ACK");
+                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_DISCOVER_ACK);
+                msg.setUserData ((Object)inc);
+                bfclient_proc.getMainProc ().enqueueMsg (msg);
+            } else if (inc.getType () == bfclient_packet.M_DISCOVER_NAK) {
+                bfclient.logInfo ("Receiving M_DISCOVER_ACK");
             } else if (inc.getType () == bfclient_packet.M_HOST_NOT_REACHABLE) {
                 bfclient.printMsg (
                     "\npacket unreachable: " + 
@@ -164,16 +177,16 @@ public class bfclient_listener implements Runnable {
             } else if (inc.getType () == bfclient_packet.M_HOST_UNKNOWN_PACKET) {
                 // debuggin - stop now
                 bfclient.logInfo ("Receiving unknown packet error");
-                System.exit (0);
+                //System.exit (0);
             } else {
                 // debuggin - stop now
                 bfclient.logInfo ("Receiving unknown packet: " + inc.getType ());
-                System.exit (0);
+                //System.exit (0);
                 // unknown type - drop and return an error msg
-                bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_UNKNOWN_PKT);
-                msg.enqueue (inc.getSrcAddr ().getHostAddress ());
-                msg.enqueue (Integer.toString (inc.getSrcPort ()));
-                bfclient_proc.getMainProc ().enqueueMsg (msg);
+                //bfclient_msg msg = new bfclient_msg (bfclient_msg.M_RCV_UNKNOWN_PKT);
+                //msg.enqueue (inc.getSrcAddr ().getHostAddress ());
+                //msg.enqueue (Integer.toString (inc.getSrcPort ()));
+                //bfclient_proc.getMainProc ().enqueueMsg (msg);
             }
         } else {
             bfclient.logInfo ("packet to forward");

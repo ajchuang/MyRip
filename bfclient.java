@@ -32,6 +32,7 @@ public class bfclient {
     public final static String M_CAT       = "CAT";
     public final static String M_RM        = "RM";
     public final static String M_RELIABE   = "RELIABLE";
+    public final static String M_DISCOVER  = "DISCOVER";
     
     static String M_LOG_FILE;    
     static Logger sm_lgr;  
@@ -189,6 +190,8 @@ public class bfclient {
                 processRm (toks);
             } else if (cmd.equals (M_RELIABE)) {
                 processReliable (toks);
+            } else if (cmd.equals (M_DISCOVER)) {
+                processDiscover (toks);
             } else {
                 System.out.println ("Unknown command: " + userInput);
             }
@@ -307,8 +310,6 @@ public class bfclient {
                 printMsg ("The destination address is unreachable.");
                 return;
             }
-            
-            
             
             // syntax sugar
             addr = localhostTranslate (addr);
@@ -501,6 +502,23 @@ public class bfclient {
         } else {
             repo.setReliableL2 (false);
         }
+    }
+    
+    void processDiscover (String[] toks) {
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        
+        bfclient_msg discover = new bfclient_msg (bfclient_msg.M_SND_DISCOVER_REQ);
+        bfclient_proc.getMainProc ().enqueueMsg (discover);
+        
+        // sleep more time
+        try {
+            Thread.sleep (500);
+        } catch (Exception e) {
+            bfclient.logExp (e, false);
+        }
+        
+        return;
     }
     
     void processDnsAdd (String[] toks) {

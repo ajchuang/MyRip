@@ -270,6 +270,22 @@ public class bfclient_repo {
         return ret;
     }
     
+    // used for broadcasting    
+    public final Vector<bfclient_rentry> findAllActiveEntries () {
+        
+        Vector<bfclient_rentry> resVec = new Vector<bfclient_rentry> ();
+        
+        synchronized (m_lock) {
+            for (bfclient_rentry ent:m_rtable) {
+                if (ent.getOn ()) {
+                    resVec.add (ent);
+                }
+            }
+        }
+        
+        return resVec;
+    }
+    
     public final boolean diableLocalLink (InetAddress addr, int port) {
         
         bfclient.logInfo ("diableLocalLink: " + addr + ":" + port);

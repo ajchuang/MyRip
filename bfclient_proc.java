@@ -125,6 +125,18 @@ public class bfclient_proc implements Runnable {
                         processRcvSimpleTransAck (msg);
                     break;
                     
+                    case bfclient_msg.M_SND_DISCOVER_REQ:
+                        processSndDiscoverReq (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_DISCOVER_REQ:
+                        processRcvDiscoverReq (msg);
+                    break;
+                    
+                    case bfclient_msg.M_RCV_DISCOVER_ACK:
+                        processRcvDiscoverAck (msg);
+                    break;
+                    
                     default:
                         bfclient.logErr ("Unknown msg received: " + type);
                         System.exit (0);
@@ -748,6 +760,80 @@ public class bfclient_proc implements Runnable {
         bfclient_msg rsp = new bfclient_msg (bfclient_worker.M_RCV_SIMPLE_TRANS_ACK);
         rsp.enqueue (idStr);
         bfclient_worker.getWorker ().enqueueMsg (rsp);
+    }
+    
+    void processSndDiscoverReq (bfclient_msg msg) {
+        
+        bfclient.logInfo ("processSndDiscoverReq");
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+        
+        InetAddress myAddr = repo.getLocalAddr ();
+        int myPort = repo.getPort ();
+        
+        bfclient_packet pkt = new bfclient_packet ();
+        pkt.setSrcAddr  (myAddr);
+        pkt.setSrcPort  (myPort);
+        pkt.setType     (bfclient_packet.M_DISCOVER_REQ);
+         
+        // broadcast to everybody
+        final Vector<bfclient_rentry> res = repo.findAllActiveEntries ();
+        
+        for (bfclient_rentry dst: res) {
+            bfclient.logInfo ("Send discover req to " + dst);
+            pkt.setDstAddr  (dst.getAddr ());
+            pkt.setDstPort  (dst.getPort ());
+                        
+            bfclient_rentry nextHop = repo.searchRoutingTable (dst.getAddr (), dst.getPort ());
+            sendPacket (pkt.pack (), nextHop);
+        }
+    }
+    
+    void processRcvDiscoverReq (bfclient_msg msg) {
+        
+        bfclient.logInfo ("processRcvDiscoverReq");
+        
+        bfclient_repo repo = bfclient_repo.getRepo ();
+    
+        InetAddress myAddr = repo.getLocalAddr ();
+        int myPort = repo.getPort ();
+        
+        bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
+        InetAddress srcAddr = pkt.getSrcAddr ();
+        int srcPort = pkt.getSrcPort ();
+        
+        bfclient_packet rep = new bfclient_packet ();
+        rep.setSrcAddr  (myAddr);
+        rep.setSrcPort  (myPort);
+        rep.setDstAddr  (srcAddr);
+        rep.setDstPort  (srcPort);
+        
+        if (repo.getFileName () != null) {
+            byte[] ans = ByteBuffer.allocate(4).putInt (repo.getChunkNum ()).array();
+            rep.setType     (bfclient_packet.M_DISCOVER_ACK);
+            rep.setUserData (ans);
+        } else {
+            rep.setType     (bfclient_packet.M_DISCOVER_NAK);
+        }
+        
+        bfclient_rentry nextHop = repo.searchRoutingTable (srcAddr, srcPort);
+        sendPacket (rep.pack (), nextHop);
+    }
+    
+    void processRcvDiscoverAck (bfclient_msg msg) {
+        
+        bfclient_packet pkt = (bfclient_packet) msg.getUserData ();
+        InetAddress srcAddr = pkt.getSrcAddr ();
+        int srcPort = pkt.getSrcPort ();
+        byte[] ans = pkt.getUserData ();
+        int chunkId = ByteBuffer.wrap (ans).getInt ();
+        
+        bfclient.printMsg (
+            "Chunk " + chunkId + 
+            " found @" + srcAddr.getHostAddress () + ":" +
+            srcPort);
+        
+        return;
     }
     
     // msg is the packet to send, rentry is the matching routing table entry

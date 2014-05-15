@@ -24,6 +24,10 @@ public class bfclient_packet {
     public final static byte M_USER_BASIC_TRANS = 0x21;
     public final static byte M_USER_BASIC_TRANS_ACK = 0x22;
     
+    // discovery functions
+    public final static byte M_DISCOVER_REQ = 0x50;
+    public final static byte M_DISCOVER_ACK = 0x51;
+    public final static byte M_DISCOVER_NAK = 0x52;
     
     public final static byte M_LINK_DOWN    = 0x30;
     public final static byte M_LINK_UP      = 0x31;

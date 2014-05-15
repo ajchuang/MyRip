@@ -145,6 +145,12 @@ D)  Supported commands
      A utility allows the user to check the content of the file.
    - RM [file name]
      A utility allows the user to delete the existing file.
+     
+4. Application layer fun features
+   - DISCOVER
+     This function is defined for the node to discover where the chunks 
+     are in all reachable destinations. It's a nice feature for someone 
+     with bad memory like me.
 
 E) More things to say
 The Bellman-ford routing program is well-designed in most cases including
